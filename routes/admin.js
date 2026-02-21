@@ -3,7 +3,8 @@ const router = express.Router();
 const db = require('../config/database');
 const { isAdminAuthenticated } = require('../middleware/auth');
 
-// Admin Dashboard
+// ==================== DASHBOARD ====================
+
 router.get('/admin/dashboard', isAdminAuthenticated, async (req, res) => {
   try {
     const [stats] = await db.query(`
@@ -12,7 +13,10 @@ router.get('/admin/dashboard', isAdminAuthenticated, async (req, res) => {
         (SELECT COUNT(*) FROM exam_sessions) as total_sessions,
         (SELECT COUNT(*) FROM exam_sessions WHERE status = 'in_progress') as active_sessions,
         (SELECT COUNT(*) FROM exam_sessions WHERE status IN ('submitted', 'auto_submitted')) as completed_sessions,
-        (SELECT COUNT(*) FROM exam_results WHERE admin_status = 'flagged') as flagged_sessions
+        (SELECT COUNT(*) FROM exam_results WHERE admin_status = 'flagged') as flagged_sessions,
+        (SELECT COUNT(*) FROM degrees) as total_degrees,
+        (SELECT COUNT(*) FROM exams) as total_exams,
+        (SELECT COUNT(*) FROM questions) as total_questions
     `);
 
     const [recentSessions] = await db.query(`
@@ -28,12 +32,392 @@ router.get('/admin/dashboard', isAdminAuthenticated, async (req, res) => {
 
     res.render('admin/dashboard', {
       adminName: req.session.adminName,
+      activePage: 'dashboard',
       stats: stats[0],
       sessions: recentSessions
     });
   } catch (err) {
     console.error('Admin dashboard error:', err);
     res.redirect('/admin/login');
+  }
+});
+
+// ==================== DEGREES / PROGRAMS ====================
+
+router.get('/admin/degrees', isAdminAuthenticated, async (req, res) => {
+  try {
+    const [degrees] = await db.query(`
+      SELECT d.*, (SELECT COUNT(*) FROM exams e WHERE e.degree_id = d.id) as exam_count
+      FROM degrees d ORDER BY d.name
+    `);
+    res.render('admin/degrees', { adminName: req.session.adminName, activePage: 'degrees', degrees });
+  } catch (err) {
+    console.error(err);
+    res.redirect('/admin/dashboard');
+  }
+});
+
+router.post('/admin/degrees/create', isAdminAuthenticated, async (req, res) => {
+  try {
+    const { name, code, description, department, duration_years } = req.body;
+    await db.query(
+      'INSERT INTO degrees (name, code, description, department, duration_years) VALUES (?, ?, ?, ?, ?)',
+      [name, code, description || null, department || null, duration_years || 4]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, error: err.code === 'ER_DUP_ENTRY' ? 'Degree code already exists' : 'Failed to create degree' });
+  }
+});
+
+router.post('/admin/degrees/:id/update', isAdminAuthenticated, async (req, res) => {
+  try {
+    const { name, code, description, department, duration_years, is_active } = req.body;
+    await db.query(
+      'UPDATE degrees SET name=?, code=?, description=?, department=?, duration_years=?, is_active=? WHERE id=?',
+      [name, code, description || null, department || null, duration_years || 4, is_active ? 1 : 0, req.params.id]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, error: 'Failed to update degree' });
+  }
+});
+
+router.post('/admin/degrees/:id/delete', isAdminAuthenticated, async (req, res) => {
+  try {
+    await db.query('DELETE FROM degrees WHERE id = ?', [req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, error: 'Cannot delete degree with linked exams' });
+  }
+});
+
+// ==================== QUESTION PAPERS (EXAMS) ====================
+
+router.get('/admin/exams', isAdminAuthenticated, async (req, res) => {
+  try {
+    const [exams] = await db.query(`
+      SELECT e.*, d.name as degree_name, d.code as degree_code,
+             (SELECT COUNT(*) FROM sections s WHERE s.exam_id = e.id) as section_count,
+             (SELECT COUNT(*) FROM questions q WHERE q.exam_id = e.id) as question_count
+      FROM exams e
+      LEFT JOIN degrees d ON e.degree_id = d.id
+      ORDER BY e.created_at DESC
+    `);
+    const [degrees] = await db.query('SELECT * FROM degrees WHERE is_active = 1 ORDER BY name');
+    res.render('admin/exams', { adminName: req.session.adminName, activePage: 'exams', exams, degrees });
+  } catch (err) {
+    console.error(err);
+    res.redirect('/admin/dashboard');
+  }
+});
+
+router.post('/admin/exams/create', isAdminAuthenticated, async (req, res) => {
+  try {
+    const {
+      title, exam_code, description, instructions, degree_id,
+      duration_minutes, total_questions, total_marks, passing_marks,
+      negative_marking, negative_mark_value, shuffle_questions,
+      show_result_immediately, max_tab_switches, max_violations,
+      auto_save_interval, exam_date, start_time, end_time
+    } = req.body;
+
+    const [result] = await db.query(
+      `INSERT INTO exams (title, exam_code, description, instructions, degree_id,
+        duration_minutes, total_questions, total_marks, passing_marks,
+        negative_marking, negative_mark_value, shuffle_questions,
+        show_result_immediately, max_tab_switches, max_violations,
+        auto_save_interval, exam_date, start_time, end_time)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [title, exam_code || null, description || null, instructions || null,
+       degree_id || null, duration_minutes || 60, total_questions || 0,
+       total_marks || 100, passing_marks || 40,
+       negative_marking ? 1 : 0, negative_mark_value || 0.25,
+       shuffle_questions ? 1 : 0, show_result_immediately ? 1 : 0,
+       max_tab_switches || 5, max_violations || 10,
+       auto_save_interval || 15, exam_date || null, start_time || null, end_time || null]
+    );
+    res.json({ success: true, examId: result.insertId });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, error: 'Failed to create exam' });
+  }
+});
+
+router.post('/admin/exams/:id/update', isAdminAuthenticated, async (req, res) => {
+  try {
+    const {
+      title, exam_code, description, instructions, degree_id,
+      duration_minutes, total_questions, total_marks, passing_marks,
+      negative_marking, negative_mark_value, shuffle_questions,
+      show_result_immediately, max_tab_switches, max_violations,
+      auto_save_interval, exam_date, start_time, end_time, is_active
+    } = req.body;
+
+    await db.query(
+      `UPDATE exams SET title=?, exam_code=?, description=?, instructions=?, degree_id=?,
+        duration_minutes=?, total_questions=?, total_marks=?, passing_marks=?,
+        negative_marking=?, negative_mark_value=?, shuffle_questions=?,
+        show_result_immediately=?, max_tab_switches=?, max_violations=?,
+        auto_save_interval=?, exam_date=?, start_time=?, end_time=?, is_active=?
+       WHERE id=?`,
+      [title, exam_code || null, description || null, instructions || null,
+       degree_id || null, duration_minutes || 60, total_questions || 0,
+       total_marks || 100, passing_marks || 40,
+       negative_marking ? 1 : 0, negative_mark_value || 0.25,
+       shuffle_questions ? 1 : 0, show_result_immediately ? 1 : 0,
+       max_tab_switches || 5, max_violations || 10,
+       auto_save_interval || 15, exam_date || null, start_time || null, end_time || null,
+       is_active ? 1 : 0, req.params.id]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, error: 'Failed to update exam' });
+  }
+});
+
+router.post('/admin/exams/:id/delete', isAdminAuthenticated, async (req, res) => {
+  try {
+    await db.query('DELETE FROM exams WHERE id = ?', [req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, error: 'Cannot delete exam with active sessions' });
+  }
+});
+
+// ==================== EXAM DETAIL (PAPER CONFIG) ====================
+
+router.get('/admin/exams/:id', isAdminAuthenticated, async (req, res) => {
+  try {
+    const [exams] = await db.query(`
+      SELECT e.*, d.name as degree_name, d.code as degree_code
+      FROM exams e LEFT JOIN degrees d ON e.degree_id = d.id
+      WHERE e.id = ?
+    `, [req.params.id]);
+    if (exams.length === 0) return res.redirect('/admin/exams');
+
+    const [sections] = await db.query(`
+      SELECT s.*, (SELECT COUNT(*) FROM questions q WHERE q.section_id = s.id) as actual_questions
+      FROM sections s WHERE s.exam_id = ? ORDER BY s.sort_order
+    `, [req.params.id]);
+
+    const [questions] = await db.query(`
+      SELECT q.*, s.title as section_title FROM questions q
+      LEFT JOIN sections s ON q.section_id = s.id
+      WHERE q.exam_id = ? ORDER BY q.sort_order
+    `, [req.params.id]);
+
+    const [degrees] = await db.query('SELECT * FROM degrees WHERE is_active = 1 ORDER BY name');
+
+    res.render('admin/exam-detail', {
+      adminName: req.session.adminName,
+      activePage: 'exams',
+      exam: exams[0],
+      sections,
+      questions,
+      degrees
+    });
+  } catch (err) {
+    console.error(err);
+    res.redirect('/admin/exams');
+  }
+});
+
+// ==================== SECTIONS ====================
+
+router.post('/admin/exams/:examId/sections/create', isAdminAuthenticated, async (req, res) => {
+  try {
+    const { title, section_type, description, num_questions, marks_per_question, time_limit_minutes, is_mandatory, shuffle_questions } = req.body;
+
+    const [maxOrder] = await db.query('SELECT COALESCE(MAX(sort_order), 0) + 1 as next_order FROM sections WHERE exam_id = ?', [req.params.examId]);
+    const totalMarks = (num_questions || 0) * (marks_per_question || 1);
+
+    const [result] = await db.query(
+      `INSERT INTO sections (exam_id, title, section_type, description, num_questions, marks_per_question, total_marks, time_limit_minutes, is_mandatory, shuffle_questions, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [req.params.examId, title, section_type || 'mcq', description || null,
+       num_questions || 0, marks_per_question || 1, totalMarks,
+       time_limit_minutes || 0, is_mandatory ? 1 : 0, shuffle_questions ? 1 : 0,
+       maxOrder[0].next_order]
+    );
+
+    // Recalculate exam totals
+    await recalcExamTotals(req.params.examId);
+
+    res.json({ success: true, sectionId: result.insertId });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, error: 'Failed to create section' });
+  }
+});
+
+router.post('/admin/sections/:id/update', isAdminAuthenticated, async (req, res) => {
+  try {
+    const { title, section_type, description, num_questions, marks_per_question, time_limit_minutes, is_mandatory, shuffle_questions, sort_order } = req.body;
+    const totalMarks = (num_questions || 0) * (marks_per_question || 1);
+
+    await db.query(
+      `UPDATE sections SET title=?, section_type=?, description=?, num_questions=?, marks_per_question=?, total_marks=?, time_limit_minutes=?, is_mandatory=?, shuffle_questions=?, sort_order=? WHERE id=?`,
+      [title, section_type || 'mcq', description || null,
+       num_questions || 0, marks_per_question || 1, totalMarks,
+       time_limit_minutes || 0, is_mandatory ? 1 : 0, shuffle_questions ? 1 : 0,
+       sort_order || 0, req.params.id]
+    );
+
+    // Recalculate exam totals
+    const [sec] = await db.query('SELECT exam_id FROM sections WHERE id = ?', [req.params.id]);
+    if (sec.length > 0) await recalcExamTotals(sec[0].exam_id);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, error: 'Failed to update section' });
+  }
+});
+
+router.post('/admin/sections/:id/delete', isAdminAuthenticated, async (req, res) => {
+  try {
+    const [sec] = await db.query('SELECT exam_id FROM sections WHERE id = ?', [req.params.id]);
+    await db.query('DELETE FROM sections WHERE id = ?', [req.params.id]);
+    if (sec.length > 0) await recalcExamTotals(sec[0].exam_id);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, error: 'Failed to delete section' });
+  }
+});
+
+// ==================== QUESTIONS ====================
+
+router.get('/admin/exams/:examId/questions/add', isAdminAuthenticated, async (req, res) => {
+  try {
+    const [exams] = await db.query('SELECT * FROM exams WHERE id = ?', [req.params.examId]);
+    if (exams.length === 0) return res.redirect('/admin/exams');
+
+    const [sections] = await db.query('SELECT * FROM sections WHERE exam_id = ? ORDER BY sort_order', [req.params.examId]);
+
+    res.render('admin/question-form', {
+      adminName: req.session.adminName,
+      activePage: 'exams',
+      exam: exams[0],
+      sections,
+      question: null,
+      sectionId: req.query.section_id || null
+    });
+  } catch (err) {
+    console.error(err);
+    res.redirect('/admin/exams/' + req.params.examId);
+  }
+});
+
+router.get('/admin/questions/:id/edit', isAdminAuthenticated, async (req, res) => {
+  try {
+    const [questions] = await db.query('SELECT * FROM questions WHERE id = ?', [req.params.id]);
+    if (questions.length === 0) return res.redirect('/admin/exams');
+
+    const question = questions[0];
+    const [exams] = await db.query('SELECT * FROM exams WHERE id = ?', [question.exam_id]);
+    const [sections] = await db.query('SELECT * FROM sections WHERE exam_id = ? ORDER BY sort_order', [question.exam_id]);
+
+    res.render('admin/question-form', {
+      adminName: req.session.adminName,
+      activePage: 'exams',
+      exam: exams[0],
+      sections,
+      question,
+      sectionId: question.section_id
+    });
+  } catch (err) {
+    console.error(err);
+    res.redirect('/admin/exams');
+  }
+});
+
+router.post('/admin/exams/:examId/questions/create', isAdminAuthenticated, async (req, res) => {
+  try {
+    const {
+      section_id, question_type, difficulty, question_text,
+      option_a, option_b, option_c, option_d, correct_option,
+      explanation, marks
+    } = req.body;
+
+    const [maxOrder] = await db.query('SELECT COALESCE(MAX(sort_order), 0) + 1 as next_order FROM questions WHERE exam_id = ?', [req.params.examId]);
+
+    await db.query(
+      `INSERT INTO questions (exam_id, section_id, question_type, difficulty, question_text,
+        option_a, option_b, option_c, option_d, correct_option, explanation, marks, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [req.params.examId, section_id || null, question_type || 'mcq', difficulty || 'medium',
+       question_text, option_a || null, option_b || null, option_c || null, option_d || null,
+       correct_option || null, explanation || null, marks || 1, maxOrder[0].next_order]
+    );
+
+    await recalcExamTotals(req.params.examId);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, error: 'Failed to create question' });
+  }
+});
+
+router.post('/admin/questions/:id/update', isAdminAuthenticated, async (req, res) => {
+  try {
+    const {
+      section_id, question_type, difficulty, question_text,
+      option_a, option_b, option_c, option_d, correct_option,
+      explanation, marks, sort_order
+    } = req.body;
+
+    await db.query(
+      `UPDATE questions SET section_id=?, question_type=?, difficulty=?, question_text=?,
+        option_a=?, option_b=?, option_c=?, option_d=?, correct_option=?,
+        explanation=?, marks=?, sort_order=? WHERE id=?`,
+      [section_id || null, question_type || 'mcq', difficulty || 'medium',
+       question_text, option_a || null, option_b || null, option_c || null, option_d || null,
+       correct_option || null, explanation || null, marks || 1, sort_order || 0, req.params.id]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, error: 'Failed to update question' });
+  }
+});
+
+router.post('/admin/questions/:id/delete', isAdminAuthenticated, async (req, res) => {
+  try {
+    const [q] = await db.query('SELECT exam_id FROM questions WHERE id = ?', [req.params.id]);
+    await db.query('DELETE FROM questions WHERE id = ?', [req.params.id]);
+    if (q.length > 0) await recalcExamTotals(q[0].exam_id);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, error: 'Failed to delete question' });
+  }
+});
+
+// ==================== SESSIONS LIST ====================
+
+router.get('/admin/sessions', isAdminAuthenticated, async (req, res) => {
+  try {
+    const [sessions] = await db.query(`
+      SELECT es.*, s.name as student_name, s.application_id, e.title as exam_title,
+             er.score, er.risk_score, er.confidence_score, er.admin_status,
+             (SELECT COUNT(*) FROM violations v WHERE v.session_id = es.id) as violation_count
+      FROM exam_sessions es
+      JOIN students s ON es.student_id = s.id
+      JOIN exams e ON es.exam_id = e.id
+      LEFT JOIN exam_results er ON er.session_id = es.id
+      ORDER BY es.created_at DESC LIMIT 100
+    `);
+    res.render('admin/sessions', { adminName: req.session.adminName, activePage: 'sessions', sessions });
+  } catch (err) {
+    console.error(err);
+    res.redirect('/admin/dashboard');
   }
 });
 
@@ -81,6 +465,7 @@ router.get('/admin/session/:id', isAdminAuthenticated, async (req, res) => {
 
     res.render('admin/session-detail', {
       adminName: req.session.adminName,
+      activePage: 'sessions',
       session: sessions[0],
       violations,
       violationSummary,
@@ -93,7 +478,7 @@ router.get('/admin/session/:id', isAdminAuthenticated, async (req, res) => {
   }
 });
 
-// Update session status (approve / flag / disqualify)
+// Update session status
 router.post('/admin/session/:id/update', isAdminAuthenticated, async (req, res) => {
   try {
     const { admin_status, admin_notes } = req.body;
@@ -104,10 +489,7 @@ router.post('/admin/session/:id/update', isAdminAuthenticated, async (req, res) 
     );
 
     if (admin_status === 'disqualified') {
-      await db.query(
-        'UPDATE exam_sessions SET status = "disqualified" WHERE id = ?',
-        [req.params.id]
-      );
+      await db.query('UPDATE exam_sessions SET status = "disqualified" WHERE id = ?', [req.params.id]);
     }
 
     res.json({ success: true });
@@ -117,26 +499,26 @@ router.post('/admin/session/:id/update', isAdminAuthenticated, async (req, res) 
   }
 });
 
-// Manage exams
-router.get('/admin/exams', isAdminAuthenticated, async (req, res) => {
+// Manage students
+router.get('/admin/students', isAdminAuthenticated, async (req, res) => {
   try {
-    const [exams] = await db.query('SELECT * FROM exams ORDER BY created_at DESC');
-    res.render('admin/exams', { adminName: req.session.adminName, exams });
+    const [students] = await db.query('SELECT * FROM students ORDER BY created_at DESC');
+    res.render('admin/students', { adminName: req.session.adminName, activePage: 'students', students });
   } catch (err) {
     console.error(err);
     res.redirect('/admin/dashboard');
   }
 });
 
-// Manage students
-router.get('/admin/students', isAdminAuthenticated, async (req, res) => {
-  try {
-    const [students] = await db.query('SELECT * FROM students ORDER BY created_at DESC');
-    res.render('admin/students', { adminName: req.session.adminName, students });
-  } catch (err) {
-    console.error(err);
-    res.redirect('/admin/dashboard');
-  }
-});
+// ==================== HELPER ====================
+
+async function recalcExamTotals(examId) {
+  const [totals] = await db.query(`
+    SELECT COALESCE(SUM(s.num_questions), 0) as total_q, COALESCE(SUM(s.total_marks), 0) as total_m
+    FROM sections s WHERE s.exam_id = ?
+  `, [examId]);
+  await db.query('UPDATE exams SET total_questions = ?, total_marks = ? WHERE id = ?',
+    [totals[0].total_q, totals[0].total_m, examId]);
+}
 
 module.exports = router;

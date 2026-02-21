@@ -1,18 +1,20 @@
 <%- include('../partials/head', { title: 'Session Detail - Admin' }) %>
 
-<div class="min-h-screen bg-gray-50">
-  <!-- Header -->
-  <nav class="bg-gray-800 text-white px-6 py-3 flex items-center justify-between">
-    <div class="flex items-center space-x-3">
-      <a href="/admin/dashboard" class="text-gray-300 hover:text-white transition">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-      </a>
-      <h1 class="font-bold">Session #<%= session.id %> - <%= session.student_name %></h1>
-    </div>
-    <span class="text-sm text-gray-300"><%= adminName %></span>
-  </nav>
+<div class="min-h-screen bg-gray-50 flex">
+  <%- include('../partials/admin-sidebar') %>
 
-  <div class="max-w-7xl mx-auto px-6 py-8">
+  <div class="ml-56 flex-1">
+    <!-- Header -->
+    <div class="bg-white border-b px-6 py-4">
+      <div class="flex items-center space-x-2 text-sm text-gray-500 mb-1">
+        <a href="/admin/sessions" class="hover:text-indigo-600 transition">Sessions</a>
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        <span class="text-gray-800">Session #<%= session.id %></span>
+      </div>
+      <h1 class="text-xl font-bold text-gray-800">Session #<%= session.id %> - <%= session.student_name %></h1>
+    </div>
+
+    <div class="p-6">
     <div class="grid grid-cols-3 gap-6">
       <!-- Left Column: Student & Session Info -->
       <div class="space-y-6">
@@ -175,6 +177,7 @@
         </div>
       </div>
     </div>
+  </div>
   </div>
 </div>
 

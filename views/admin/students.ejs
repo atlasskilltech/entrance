@@ -1,40 +1,44 @@
 <%- include('../partials/head', { title: 'Manage Students - Admin' }) %>
 
-<div class="min-h-screen bg-gray-50">
-  <nav class="bg-gray-800 text-white px-6 py-3 flex items-center justify-between">
-    <div class="flex items-center space-x-3">
-      <a href="/admin/dashboard" class="text-gray-300 hover:text-white transition">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-      </a>
-      <h1 class="font-bold">Manage Students</h1>
-    </div>
-    <span class="text-sm text-gray-300"><%= adminName %></span>
-  </nav>
+<div class="min-h-screen bg-gray-50 flex">
+  <%- include('../partials/admin-sidebar') %>
 
-  <div class="max-w-5xl mx-auto px-6 py-8">
-    <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
-      <table class="w-full text-sm">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-4 py-3 text-left font-semibold text-gray-600">App ID</th>
-            <th class="px-4 py-3 text-left font-semibold text-gray-600">Name</th>
-            <th class="px-4 py-3 text-left font-semibold text-gray-600">Email</th>
-            <th class="px-4 py-3 text-left font-semibold text-gray-600">Mobile</th>
-            <th class="px-4 py-3 text-left font-semibold text-gray-600">Registered</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100">
-          <% students.forEach(s => { %>
-            <tr>
-              <td class="px-4 py-3 font-medium"><%= s.application_id %></td>
-              <td class="px-4 py-3"><%= s.name %></td>
-              <td class="px-4 py-3 text-gray-500"><%= s.email || 'N/A' %></td>
-              <td class="px-4 py-3"><%= s.mobile %></td>
-              <td class="px-4 py-3 text-gray-500"><%= new Date(s.created_at).toLocaleDateString() %></td>
-            </tr>
-          <% }) %>
-        </tbody>
-      </table>
+  <div class="ml-56 flex-1">
+    <div class="bg-white border-b px-6 py-4">
+      <h1 class="text-xl font-bold text-gray-800">Students</h1>
+      <p class="text-sm text-gray-500">Registered students for entrance examinations</p>
+    </div>
+
+    <div class="p-6">
+      <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-3 text-left font-semibold text-gray-600">App ID</th>
+                <th class="px-4 py-3 text-left font-semibold text-gray-600">Name</th>
+                <th class="px-4 py-3 text-left font-semibold text-gray-600">Email</th>
+                <th class="px-4 py-3 text-left font-semibold text-gray-600">Mobile</th>
+                <th class="px-4 py-3 text-left font-semibold text-gray-600">Registered</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <% if (students.length === 0) { %>
+                <tr><td colspan="5" class="px-4 py-8 text-center text-gray-400">No students registered yet</td></tr>
+              <% } %>
+              <% students.forEach(s => { %>
+                <tr class="hover:bg-gray-50">
+                  <td class="px-4 py-3 font-medium font-mono"><%= s.application_id %></td>
+                  <td class="px-4 py-3"><%= s.name %></td>
+                  <td class="px-4 py-3 text-gray-500"><%= s.email || 'N/A' %></td>
+                  <td class="px-4 py-3"><%= s.mobile %></td>
+                  <td class="px-4 py-3 text-gray-500"><%= new Date(s.created_at).toLocaleDateString() %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 </div>

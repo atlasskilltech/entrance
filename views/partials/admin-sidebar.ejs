@@ -1,0 +1,59 @@
+<div class="w-56 bg-gray-800 min-h-screen flex flex-col fixed left-0 top-0">
+  <!-- Logo -->
+  <div class="px-4 py-4 border-b border-gray-700">
+    <div class="flex items-center space-x-2">
+      <div class="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+      </div>
+      <div>
+        <p class="text-white font-bold text-sm">Exam Admin</p>
+        <p class="text-gray-400 text-xs">Proctoring System</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+    <a href="/admin/dashboard" class="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm transition
+      <%= typeof activePage !== 'undefined' && activePage === 'dashboard' ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' %>">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      <span>Dashboard</span>
+    </a>
+
+    <p class="px-3 pt-4 pb-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">Paper Setup</p>
+
+    <a href="/admin/degrees" class="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm transition
+      <%= typeof activePage !== 'undefined' && activePage === 'degrees' ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' %>">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+      <span>Degrees / Programs</span>
+    </a>
+
+    <a href="/admin/exams" class="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm transition
+      <%= typeof activePage !== 'undefined' && activePage === 'exams' ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' %>">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      <span>Question Papers</span>
+    </a>
+
+    <p class="px-3 pt-4 pb-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">Management</p>
+
+    <a href="/admin/students" class="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm transition
+      <%= typeof activePage !== 'undefined' && activePage === 'students' ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' %>">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+      <span>Students</span>
+    </a>
+
+    <a href="/admin/sessions" class="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm transition
+      <%= typeof activePage !== 'undefined' && activePage === 'sessions' ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' %>">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01m-.01 4h.01"/></svg>
+      <span>Exam Sessions</span>
+    </a>
+  </nav>
+
+  <!-- Footer -->
+  <div class="px-4 py-3 border-t border-gray-700">
+    <div class="flex items-center justify-between">
+      <span class="text-xs text-gray-400 truncate"><%= typeof adminName !== 'undefined' ? adminName : 'Admin' %></span>
+      <a href="/admin/logout" class="text-xs text-red-400 hover:text-red-300">Logout</a>
+    </div>
+  </div>
+</div>

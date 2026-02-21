@@ -1,0 +1,225 @@
+<%- include('../partials/head', { title: (question ? 'Edit' : 'Add') + ' Question - ' + exam.title }) %>
+
+<div class="min-h-screen bg-gray-50 flex">
+  <%- include('../partials/admin-sidebar') %>
+
+  <div class="ml-56 flex-1">
+    <!-- Header -->
+    <div class="bg-white border-b px-6 py-4">
+      <div class="flex items-center space-x-2 text-sm text-gray-500 mb-1">
+        <a href="/admin/exams" class="hover:text-indigo-600 transition">Question Papers</a>
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        <a href="/admin/exams/<%= exam.id %>" class="hover:text-indigo-600 transition"><%= exam.title %></a>
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        <span class="text-gray-800"><%= question ? 'Edit Question' : 'Add Question' %></span>
+      </div>
+      <h1 class="text-xl font-bold text-gray-800"><%= question ? 'Edit Question' : 'Add New Question' %></h1>
+    </div>
+
+    <div class="p-6">
+      <div class="max-w-3xl">
+        <form id="questionForm" class="bg-white rounded-xl shadow-sm border p-6 space-y-5">
+          <!-- Section & Type -->
+          <div class="grid grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Section</label>
+              <select id="qSection" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                <option value="">-- No Section --</option>
+                <% sections.forEach(s => { %>
+                  <option value="<%= s.id %>"
+                    <%= (question && question.section_id == s.id) || (!question && sectionId == s.id) ? 'selected' : '' %>>
+                    <%= s.title %>
+                  </option>
+                <% }) %>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Question Type</label>
+              <select id="qType" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                <option value="mcq" <%= question && question.question_type === 'mcq' ? 'selected' : '' %>>MCQ</option>
+                <option value="true_false" <%= question && question.question_type === 'true_false' ? 'selected' : '' %>>True/False</option>
+                <option value="fill_blank" <%= question && question.question_type === 'fill_blank' ? 'selected' : '' %>>Fill in the Blank</option>
+                <option value="image_based" <%= question && question.question_type === 'image_based' ? 'selected' : '' %>>Image Based</option>
+                <option value="descriptive" <%= question && question.question_type === 'descriptive' ? 'selected' : '' %>>Descriptive</option>
+                <option value="matching" <%= question && question.question_type === 'matching' ? 'selected' : '' %>>Matching</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Difficulty</label>
+              <select id="qDifficulty" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                <option value="easy" <%= question && question.difficulty === 'easy' ? 'selected' : '' %>>Easy</option>
+                <option value="medium" <%= (!question || question.difficulty === 'medium') ? 'selected' : '' %>>Medium</option>
+                <option value="hard" <%= question && question.difficulty === 'hard' ? 'selected' : '' %>>Hard</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Question Text -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Question Text *</label>
+            <textarea id="qText" rows="4" required placeholder="Enter the question..."
+                      class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"><%= question ? question.question_text : '' %></textarea>
+          </div>
+
+          <!-- Options -->
+          <div id="optionsBlock">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Answer Options</label>
+            <div class="space-y-3">
+              <div class="flex items-center space-x-2">
+                <span class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-sm font-bold text-gray-500">A</span>
+                <input type="text" id="qOptA" placeholder="Option A" value="<%= question ? (question.option_a || '') : '' %>"
+                       class="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                <label class="flex items-center space-x-1 cursor-pointer">
+                  <input type="radio" name="correct" value="A" <%= question && question.correct_option === 'A' ? 'checked' : '' %> class="text-green-600 cursor-pointer">
+                  <span class="text-xs text-gray-500">Correct</span>
+                </label>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-sm font-bold text-gray-500">B</span>
+                <input type="text" id="qOptB" placeholder="Option B" value="<%= question ? (question.option_b || '') : '' %>"
+                       class="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                <label class="flex items-center space-x-1 cursor-pointer">
+                  <input type="radio" name="correct" value="B" <%= question && question.correct_option === 'B' ? 'checked' : '' %> class="text-green-600 cursor-pointer">
+                  <span class="text-xs text-gray-500">Correct</span>
+                </label>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-sm font-bold text-gray-500">C</span>
+                <input type="text" id="qOptC" placeholder="Option C" value="<%= question ? (question.option_c || '') : '' %>"
+                       class="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                <label class="flex items-center space-x-1 cursor-pointer">
+                  <input type="radio" name="correct" value="C" <%= question && question.correct_option === 'C' ? 'checked' : '' %> class="text-green-600 cursor-pointer">
+                  <span class="text-xs text-gray-500">Correct</span>
+                </label>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-sm font-bold text-gray-500">D</span>
+                <input type="text" id="qOptD" placeholder="Option D" value="<%= question ? (question.option_d || '') : '' %>"
+                       class="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                <label class="flex items-center space-x-1 cursor-pointer">
+                  <input type="radio" name="correct" value="D" <%= question && question.correct_option === 'D' ? 'checked' : '' %> class="text-green-600 cursor-pointer">
+                  <span class="text-xs text-gray-500">Correct</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Explanation & Marks -->
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Explanation (shown after exam)</label>
+              <textarea id="qExplanation" rows="2" placeholder="Why this answer is correct..."
+                        class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"><%= question ? (question.explanation || '') : '' %></textarea>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Marks</label>
+              <input type="number" id="qMarks" value="<%= question ? question.marks : 1 %>" min="1"
+                     class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+              <% if (question) { %>
+                <div class="mt-2">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Sort Order</label>
+                  <input type="number" id="qOrder" value="<%= question.sort_order %>" min="1"
+                         class="w-full px-3 py-2 border rounded-lg text-sm">
+                </div>
+              <% } %>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex items-center justify-between pt-4 border-t">
+            <a href="/admin/exams/<%= exam.id %>" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">
+              Back to Paper
+            </a>
+            <div class="flex space-x-2">
+              <% if (!question) { %>
+                <button type="button" onclick="saveAndAddMore()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition cursor-pointer">
+                  Save & Add Another
+                </button>
+              <% } %>
+              <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition cursor-pointer">
+                <%= question ? 'Update Question' : 'Save Question' %>
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const examId = <%= exam.id %>;
+const questionId = <%= question ? question.id : 'null' %>;
+let addMore = false;
+
+function getFormData() {
+  return {
+    section_id: document.getElementById('qSection').value || null,
+    question_type: document.getElementById('qType').value,
+    difficulty: document.getElementById('qDifficulty').value,
+    question_text: document.getElementById('qText').value,
+    option_a: document.getElementById('qOptA').value,
+    option_b: document.getElementById('qOptB').value,
+    option_c: document.getElementById('qOptC').value,
+    option_d: document.getElementById('qOptD').value,
+    correct_option: document.querySelector('input[name="correct"]:checked')?.value || null,
+    explanation: document.getElementById('qExplanation').value,
+    marks: parseInt(document.getElementById('qMarks').value) || 1,
+    sort_order: document.getElementById('qOrder') ? parseInt(document.getElementById('qOrder').value) : undefined
+  };
+}
+
+function saveAndAddMore() { addMore = true; document.getElementById('questionForm').requestSubmit(); }
+
+document.getElementById('questionForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = getFormData();
+
+  let url, successRedirect;
+  if (questionId) {
+    url = `/admin/questions/${questionId}/update`;
+    successRedirect = `/admin/exams/${examId}`;
+  } else {
+    url = `/admin/exams/${examId}/questions/create`;
+    successRedirect = addMore ? null : `/admin/exams/${examId}`;
+  }
+
+  const res = await fetch(url, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+  });
+  const result = await res.json();
+
+  if (result.success) {
+    if (addMore) {
+      // Reset form but keep section
+      const selectedSection = document.getElementById('qSection').value;
+      document.getElementById('questionForm').reset();
+      document.getElementById('qSection').value = selectedSection;
+      document.getElementById('qMarks').value = 1;
+      addMore = false;
+      // Flash success
+      const btn = document.querySelector('[type="submit"]');
+      const orig = btn.textContent;
+      btn.textContent = 'Saved!';
+      btn.classList.replace('bg-indigo-600', 'bg-green-600');
+      setTimeout(() => { btn.textContent = orig; btn.classList.replace('bg-green-600', 'bg-indigo-600'); }, 1500);
+    } else {
+      window.location.href = successRedirect;
+    }
+  } else {
+    alert(result.error || 'Failed to save question');
+  }
+});
+
+// Toggle options block for non-MCQ types
+document.getElementById('qType').addEventListener('change', (e) => {
+  const optBlock = document.getElementById('optionsBlock');
+  if (e.target.value === 'descriptive') {
+    optBlock.style.opacity = '0.4';
+  } else {
+    optBlock.style.opacity = '1';
+  }
+});
+</script>
+
+<%- include('../partials/footer') %>
