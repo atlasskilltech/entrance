@@ -63,8 +63,8 @@ CREATE TABLE IF NOT EXISTS questions (
   FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE SET NULL
 );
 
--- Exam sessions table
-CREATE TABLE IF NOT EXISTS exam_sessions (
+-- Entrance sessions table
+CREATE TABLE IF NOT EXISTS ent_sessions (
   id INT AUTO_INCREMENT PRIMARY KEY,
   student_id INT NOT NULL,
   exam_id INT NOT NULL,
@@ -90,7 +90,7 @@ CREATE TABLE IF NOT EXISTS responses (
   selected_option CHAR(1),
   marked_for_review TINYINT(1) DEFAULT 0,
   answered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (session_id) REFERENCES exam_sessions(id) ON DELETE CASCADE,
+  FOREIGN KEY (session_id) REFERENCES ent_sessions(id) ON DELETE CASCADE,
   FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE,
   UNIQUE KEY unique_response (session_id, question_id)
 );
@@ -103,7 +103,7 @@ CREATE TABLE IF NOT EXISTS violations (
   details TEXT,
   severity ENUM('low', 'medium', 'high') DEFAULT 'medium',
   timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (session_id) REFERENCES exam_sessions(id) ON DELETE CASCADE
+  FOREIGN KEY (session_id) REFERENCES ent_sessions(id) ON DELETE CASCADE
 );
 
 -- Proctoring logs table
@@ -113,11 +113,11 @@ CREATE TABLE IF NOT EXISTS proctoring_logs (
   event_type VARCHAR(100) NOT NULL,
   event_data JSON,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (session_id) REFERENCES exam_sessions(id) ON DELETE CASCADE
+  FOREIGN KEY (session_id) REFERENCES ent_sessions(id) ON DELETE CASCADE
 );
 
--- Exam results / risk score table
-CREATE TABLE IF NOT EXISTS exam_results (
+-- Entrance results / risk score table
+CREATE TABLE IF NOT EXISTS ent_results (
   id INT AUTO_INCREMENT PRIMARY KEY,
   session_id INT NOT NULL UNIQUE,
   total_answered INT DEFAULT 0,
@@ -130,7 +130,7 @@ CREATE TABLE IF NOT EXISTS exam_results (
   reviewed_by INT,
   reviewed_at TIMESTAMP NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (session_id) REFERENCES exam_sessions(id) ON DELETE CASCADE,
+  FOREIGN KEY (session_id) REFERENCES ent_sessions(id) ON DELETE CASCADE,
   FOREIGN KEY (reviewed_by) REFERENCES admins(id) ON DELETE SET NULL
 );
 
