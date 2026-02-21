@@ -1,0 +1,141 @@
+<%- include('../partials/head', { title: 'Exam Rules - ' + session.exam_title }) %>
+
+<div class="min-h-screen bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-8 fade-in">
+    <div class="text-center mb-6">
+      <h1 class="text-2xl font-bold text-gray-800">Exam Rules & Declaration</h1>
+      <p class="text-gray-500 mt-1"><%= session.exam_title %></p>
+    </div>
+
+    <!-- Progress Steps -->
+    <div class="flex items-center justify-center mb-8 space-x-2">
+      <div class="flex items-center space-x-2">
+        <div class="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">&#10003;</div>
+        <span class="text-sm text-green-600">System</span>
+      </div>
+      <div class="w-8 h-0.5 bg-green-400"></div>
+      <div class="flex items-center space-x-2">
+        <div class="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">&#10003;</div>
+        <span class="text-sm text-green-600">A/V</span>
+      </div>
+      <div class="w-8 h-0.5 bg-green-400"></div>
+      <div class="flex items-center space-x-2">
+        <div class="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center text-sm font-bold">3</div>
+        <span class="text-sm font-medium text-indigo-600">Rules</span>
+      </div>
+      <div class="w-8 h-0.5 bg-gray-300"></div>
+      <div class="flex items-center space-x-2">
+        <div class="w-8 h-8 bg-gray-300 text-gray-500 rounded-full flex items-center justify-center text-sm font-bold">4</div>
+        <span class="text-sm text-gray-400">Exam</span>
+      </div>
+    </div>
+
+    <!-- Exam Info -->
+    <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-6">
+      <div class="grid grid-cols-3 gap-4 text-center">
+        <div>
+          <p class="text-2xl font-bold text-indigo-700"><%= session.total_questions %></p>
+          <p class="text-xs text-indigo-600">Total Questions</p>
+        </div>
+        <div>
+          <p class="text-2xl font-bold text-indigo-700"><%= session.duration_minutes %></p>
+          <p class="text-xs text-indigo-600">Minutes Duration</p>
+        </div>
+        <div>
+          <p class="text-2xl font-bold text-indigo-700">MCQ</p>
+          <p class="text-xs text-indigo-600">Question Type</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rules -->
+    <div class="space-y-3 mb-6">
+      <h3 class="font-bold text-gray-800">Examination Rules:</h3>
+      <div class="space-y-2 text-sm text-gray-700">
+        <div class="flex items-start space-x-2">
+          <span class="text-indigo-600 font-bold mt-0.5">1.</span>
+          <p>This is a <strong>proctored examination</strong>. Your webcam, microphone, and screen activity will be monitored throughout.</p>
+        </div>
+        <div class="flex items-start space-x-2">
+          <span class="text-indigo-600 font-bold mt-0.5">2.</span>
+          <p>Do <strong>not switch tabs</strong> or leave the exam window. Each tab switch will be recorded.</p>
+        </div>
+        <div class="flex items-start space-x-2">
+          <span class="text-indigo-600 font-bold mt-0.5">3.</span>
+          <p><strong>Copy and paste</strong> actions are strictly prohibited and will be logged.</p>
+        </div>
+        <div class="flex items-start space-x-2">
+          <span class="text-indigo-600 font-bold mt-0.5">4.</span>
+          <p>The exam must be taken in <strong>full-screen mode</strong>. Exiting fullscreen will trigger a warning.</p>
+        </div>
+        <div class="flex items-start space-x-2">
+          <span class="text-indigo-600 font-bold mt-0.5">5.</span>
+          <p>Your <strong>face must be visible</strong> at all times. Multiple faces or absence will be flagged.</p>
+        </div>
+        <div class="flex items-start space-x-2">
+          <span class="text-indigo-600 font-bold mt-0.5">6.</span>
+          <p>Answers are <strong>auto-saved</strong> every 15-30 seconds. The exam will auto-submit when time runs out.</p>
+        </div>
+        <div class="flex items-start space-x-2">
+          <span class="text-indigo-600 font-bold mt-0.5">7.</span>
+          <p>Excessive violations may result in <strong>automatic disqualification</strong>.</p>
+        </div>
+        <div class="flex items-start space-x-2">
+          <span class="text-indigo-600 font-bold mt-0.5">8.</span>
+          <p>Your IP address and all activity will be logged with timestamps for review.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Warning -->
+    <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6 text-sm text-amber-700">
+      <strong>Warning:</strong> Any form of malpractice detected during the examination will be reported and may lead to disqualification.
+    </div>
+
+    <!-- Consent -->
+    <div class="bg-gray-50 border rounded-lg p-4 mb-6">
+      <label class="flex items-start space-x-3 cursor-pointer">
+        <input type="checkbox" id="consentCheck" onchange="toggleStart()" class="mt-1 w-4 h-4 text-indigo-600 rounded cursor-pointer">
+        <span class="text-sm text-gray-700">
+          <strong>I agree</strong> to be monitored and recorded during the examination. I understand that any violations will be logged and reviewed. I confirm that I will follow all examination rules.
+        </span>
+      </label>
+    </div>
+
+    <!-- Start Button -->
+    <div class="text-center">
+      <button id="startExamBtn" disabled
+              class="px-10 py-3.5 bg-green-600 text-white rounded-lg font-bold text-lg hover:bg-green-700 transition shadow-lg disabled:bg-gray-300 disabled:cursor-not-allowed cursor-pointer"
+              onclick="startExam()">
+        Start Exam
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleStart() {
+  document.getElementById('startExamBtn').disabled = !document.getElementById('consentCheck').checked;
+}
+
+async function startExam() {
+  const btn = document.getElementById('startExamBtn');
+  btn.disabled = true;
+  btn.textContent = 'Starting...';
+
+  const res = await fetch('/exam/accept-rules', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({})
+  });
+  const data = await res.json();
+  if (data.success) {
+    window.location.href = data.redirect;
+  } else {
+    btn.disabled = false;
+    btn.textContent = 'Start Exam';
+  }
+}
+</script>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,35 @@
+{
+  "name": "entrance",
+  "version": "1.0.0",
+  "description": "Online Entrance Examination System - Proctored Mode",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "db:init": "node db/init.js",
+    "css:build": "npx @tailwindcss/cli -i public/css/input.css -o public/css/output.css --minify",
+    "css:watch": "npx @tailwindcss/cli -i public/css/input.css -o public/css/output.css --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://local_proxy@127.0.0.1:39765/git/atlasskilltech/entrance"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.3.1",
+    "ejs": "^4.0.1",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "multer": "^2.0.2",
+    "mysql2": "^3.17.4",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.2.0",
+    "tailwindcss": "^4.2.0"
+  }
+}

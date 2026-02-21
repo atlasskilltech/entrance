@@ -1,0 +1,201 @@
+<%- include('../partials/head', { title: 'Session Detail - Admin' }) %>
+
+<div class="min-h-screen bg-gray-50">
+  <!-- Header -->
+  <nav class="bg-gray-800 text-white px-6 py-3 flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+      <a href="/admin/dashboard" class="text-gray-300 hover:text-white transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+      </a>
+      <h1 class="font-bold">Session #<%= session.id %> - <%= session.student_name %></h1>
+    </div>
+    <span class="text-sm text-gray-300"><%= adminName %></span>
+  </nav>
+
+  <div class="max-w-7xl mx-auto px-6 py-8">
+    <div class="grid grid-cols-3 gap-6">
+      <!-- Left Column: Student & Session Info -->
+      <div class="space-y-6">
+        <!-- Student Info -->
+        <div class="bg-white rounded-xl shadow-sm border p-5">
+          <h3 class="font-bold text-gray-800 mb-3">Student Information</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between"><span class="text-gray-500">Name</span><span class="font-medium"><%= session.student_name %></span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Application ID</span><span class="font-medium"><%= session.application_id %></span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Email</span><span class="font-medium"><%= session.email || 'N/A' %></span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Mobile</span><span class="font-medium"><%= session.mobile %></span></div>
+          </div>
+          <% if (session.base_photo_url) { %>
+            <div class="mt-3">
+              <p class="text-sm text-gray-500 mb-1">Base Photo:</p>
+              <img src="<%= session.base_photo_url %>" class="w-24 h-24 rounded-lg object-cover border">
+            </div>
+          <% } %>
+        </div>
+
+        <!-- Session Info -->
+        <div class="bg-white rounded-xl shadow-sm border p-5">
+          <h3 class="font-bold text-gray-800 mb-3">Session Details</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between"><span class="text-gray-500">Exam</span><span class="font-medium"><%= session.exam_title %></span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Status</span>
+              <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium
+                <%= session.status === 'submitted' ? 'bg-green-100 text-green-800' :
+                   session.status === 'auto_submitted' ? 'bg-amber-100 text-amber-800' :
+                   session.status === 'disqualified' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800' %>">
+                <%= session.status %>
+              </span>
+            </div>
+            <div class="flex justify-between"><span class="text-gray-500">Duration</span><span class="font-medium"><%= session.duration_minutes %> min</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">IP Address</span><span class="font-medium"><%= session.ip_address || 'N/A' %></span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Screen</span><span class="font-medium"><%= session.screen_resolution || 'N/A' %></span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Started</span><span class="font-medium"><%= session.started_at ? new Date(session.started_at).toLocaleString() : 'N/A' %></span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Submitted</span><span class="font-medium"><%= session.submitted_at ? new Date(session.submitted_at).toLocaleString() : 'N/A' %></span></div>
+          </div>
+        </div>
+
+        <!-- Score Card -->
+        <div class="bg-white rounded-xl shadow-sm border p-5">
+          <h3 class="font-bold text-gray-800 mb-3">Results</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between"><span class="text-gray-500">Total Answered</span><span class="font-medium"><%= session.total_answered || 0 %> / <%= session.total_questions %></span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Correct Answers</span><span class="font-medium text-green-600"><%= session.correct_answers || 0 %></span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Score</span><span class="font-bold text-lg text-indigo-600"><%= session.score || 0 %></span></div>
+          </div>
+          <div class="mt-4 space-y-2">
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span>Risk Score</span>
+                <span class="<%= session.risk_score >= 70 ? 'text-red-600' : session.risk_score >= 40 ? 'text-amber-600' : 'text-green-600' %>"><%= session.risk_score ? session.risk_score.toFixed(1) : 0 %>%</span>
+              </div>
+              <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div class="h-full rounded-full <%= session.risk_score >= 70 ? 'bg-red-500' : session.risk_score >= 40 ? 'bg-amber-500' : 'bg-green-500' %>" style="width: <%= session.risk_score || 0 %>%"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span>Confidence Score</span>
+                <span class="text-indigo-600"><%= session.confidence_score ? session.confidence_score.toFixed(1) : 100 %>%</span>
+              </div>
+              <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div class="h-full bg-indigo-500 rounded-full" style="width: <%= session.confidence_score || 100 %>%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Middle Column: Violations & Logs -->
+      <div class="space-y-6">
+        <!-- Violation Summary -->
+        <div class="bg-white rounded-xl shadow-sm border p-5">
+          <h3 class="font-bold text-gray-800 mb-3">Violation Summary</h3>
+          <div class="space-y-2">
+            <% violationSummary.forEach(v => { %>
+              <div class="flex items-center justify-between p-2 rounded-lg <%= v.count >= 5 ? 'bg-red-50' : v.count >= 2 ? 'bg-amber-50' : 'bg-green-50' %>">
+                <span class="text-sm font-medium capitalize"><%= v.type.replace('_', ' ') %></span>
+                <span class="text-sm font-bold <%= v.count >= 5 ? 'text-red-600' : v.count >= 2 ? 'text-amber-600' : 'text-green-600' %>"><%= v.count %></span>
+              </div>
+            <% }) %>
+            <% if (violationSummary.length === 0) { %>
+              <p class="text-sm text-gray-400 text-center py-2">No violations recorded</p>
+            <% } %>
+          </div>
+        </div>
+
+        <!-- Violation Timeline -->
+        <div class="bg-white rounded-xl shadow-sm border p-5">
+          <h3 class="font-bold text-gray-800 mb-3">Violation Timeline</h3>
+          <div class="space-y-2 max-h-96 overflow-y-auto">
+            <% violations.forEach(v => { %>
+              <div class="flex items-start space-x-2 text-sm p-2 rounded-lg border-l-3
+                   <%= v.severity === 'high' ? 'border-l-red-500 bg-red-50' : v.severity === 'medium' ? 'border-l-amber-500 bg-amber-50' : 'border-l-gray-300 bg-gray-50' %>">
+                <div>
+                  <p class="font-medium capitalize"><%= v.type.replace('_', ' ') %></p>
+                  <p class="text-xs text-gray-500"><%= v.details || '' %></p>
+                  <p class="text-xs text-gray-400 mt-0.5"><%= new Date(v.timestamp).toLocaleTimeString() %></p>
+                </div>
+              </div>
+            <% }) %>
+            <% if (violations.length === 0) { %>
+              <p class="text-sm text-gray-400 text-center py-2">No violation logs</p>
+            <% } %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Responses & Admin Actions -->
+      <div class="space-y-6">
+        <!-- Admin Actions -->
+        <div class="bg-white rounded-xl shadow-sm border p-5">
+          <h3 class="font-bold text-gray-800 mb-3">Admin Actions</h3>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Decision</label>
+              <select id="adminStatus" class="w-full px-3 py-2 border rounded-lg text-sm">
+                <option value="pending" <%= session.admin_status === 'pending' ? 'selected' : '' %>>Pending Review</option>
+                <option value="approved" <%= session.admin_status === 'approved' ? 'selected' : '' %>>Approve</option>
+                <option value="flagged" <%= session.admin_status === 'flagged' ? 'selected' : '' %>>Flag for Review</option>
+                <option value="disqualified" <%= session.admin_status === 'disqualified' ? 'selected' : '' %>>Disqualify</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+              <textarea id="adminNotes" rows="3" class="w-full px-3 py-2 border rounded-lg text-sm" placeholder="Add review notes..."><%= session.admin_notes || '' %></textarea>
+            </div>
+            <button onclick="updateSession()" class="w-full py-2 bg-gray-800 text-white rounded-lg font-medium text-sm hover:bg-gray-900 transition cursor-pointer">
+              Save Decision
+            </button>
+          </div>
+        </div>
+
+        <!-- Responses -->
+        <div class="bg-white rounded-xl shadow-sm border p-5">
+          <h3 class="font-bold text-gray-800 mb-3">Student Responses</h3>
+          <div class="space-y-2 max-h-96 overflow-y-auto">
+            <% responses.forEach((r, i) => { %>
+              <div class="p-2 rounded-lg text-sm border <%= r.selected_option === r.correct_option ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200' %>">
+                <div class="flex justify-between">
+                  <span class="font-medium text-gray-700">Q<%= i + 1 %></span>
+                  <span>
+                    <span class="<%= r.selected_option === r.correct_option ? 'text-green-600' : 'text-red-600' %> font-medium">
+                      <%= r.selected_option || '-' %>
+                    </span>
+                    <span class="text-gray-400"> / </span>
+                    <span class="text-green-600"><%= r.correct_option %></span>
+                  </span>
+                </div>
+                <p class="text-xs text-gray-500 truncate mt-0.5"><%= r.question_text %></p>
+              </div>
+            <% }) %>
+            <% if (responses.length === 0) { %>
+              <p class="text-sm text-gray-400 text-center py-2">No responses recorded</p>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+async function updateSession() {
+  const status = document.getElementById('adminStatus').value;
+  const notes = document.getElementById('adminNotes').value;
+
+  const res = await fetch('/admin/session/<%= session.id %>/update', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ admin_status: status, admin_notes: notes })
+  });
+  const data = await res.json();
+  if (data.success) {
+    alert('Decision saved successfully!');
+    window.location.reload();
+  } else {
+    alert('Failed to save decision');
+  }
+}
+</script>
+
+<%- include('../partials/footer') %>

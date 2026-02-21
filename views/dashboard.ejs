@@ -1,0 +1,111 @@
+<%- include('partials/head', { title: 'Dashboard - Entrance Exam' }) %>
+
+<div class="min-h-screen bg-gray-50">
+  <!-- Header -->
+  <nav class="bg-white shadow-sm border-b">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="font-bold text-gray-800">Examination Portal</h1>
+          <p class="text-xs text-gray-500">Application ID: <%= applicationId %></p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-4">
+        <span class="text-sm text-gray-600">Welcome, <strong><%= studentName %></strong></span>
+        <a href="/logout" class="text-sm text-red-600 hover:text-red-800">Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-6xl mx-auto px-4 py-8">
+    <h2 class="text-xl font-bold text-gray-800 mb-6">Available Examinations</h2>
+
+    <% if (exams.length === 0) { %>
+      <div class="bg-white rounded-xl shadow-sm border p-8 text-center">
+        <p class="text-gray-500">No examinations available at this time.</p>
+      </div>
+    <% } else { %>
+      <div class="grid gap-6">
+        <% exams.forEach(exam => { %>
+          <% const completedSession = sessions.find(s => s.exam_id === exam.id && (s.status === 'submitted' || s.status === 'auto_submitted')); %>
+          <div class="bg-white rounded-xl shadow-sm border p-6 hover:shadow-md transition fade-in">
+            <div class="flex items-start justify-between">
+              <div>
+                <h3 class="text-lg font-bold text-gray-800"><%= exam.title %></h3>
+                <p class="text-gray-500 mt-1 text-sm"><%= exam.description %></p>
+                <div class="flex items-center space-x-4 mt-3 text-sm text-gray-600">
+                  <span class="flex items-center space-x-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span><%= exam.duration_minutes %> minutes</span>
+                  </span>
+                  <span class="flex items-center space-x-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                    <span><%= exam.total_questions %> Questions</span>
+                  </span>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Proctored</span>
+                </div>
+              </div>
+              <div>
+                <% if (completedSession) { %>
+                  <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-gray-600">
+                    Completed
+                  </span>
+                <% } else { %>
+                  <a href="/exam/<%= exam.id %>/start"
+                     class="inline-flex items-center px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-semibold text-sm hover:bg-indigo-700 transition shadow-md hover:shadow-lg">
+                    Start Online Challenge
+                    <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                  </a>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+
+    <% if (sessions.length > 0) { %>
+      <h2 class="text-xl font-bold text-gray-800 mt-10 mb-4">Exam History</h2>
+      <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-3 text-left font-semibold text-gray-600">Session</th>
+              <th class="px-4 py-3 text-left font-semibold text-gray-600">Status</th>
+              <th class="px-4 py-3 text-left font-semibold text-gray-600">Date</th>
+              <th class="px-4 py-3 text-left font-semibold text-gray-600">Action</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <% sessions.forEach(s => { %>
+              <tr>
+                <td class="px-4 py-3">#<%= s.id %></td>
+                <td class="px-4 py-3">
+                  <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium
+                    <%= s.status === 'submitted' || s.status === 'auto_submitted' ? 'bg-green-100 text-green-800' :
+                       s.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' :
+                       s.status === 'disqualified' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800' %>">
+                    <%= s.status.replace('_', ' ') %>
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-gray-500"><%= new Date(s.created_at).toLocaleDateString() %></td>
+                <td class="px-4 py-3">
+                  <% if (s.status === 'submitted' || s.status === 'auto_submitted') { %>
+                    <a href="/exam/result/<%= s.id %>" class="text-indigo-600 hover:text-indigo-800 text-sm">View Result</a>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

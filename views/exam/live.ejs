@@ -1,0 +1,548 @@
+<%- include('../partials/head', { title: 'Live Examination' }) %>
+
+<div class="min-h-screen bg-gray-100 flex flex-col" id="examContainer">
+  <!-- Top Bar -->
+  <div class="bg-white shadow-sm border-b px-4 py-2 flex items-center justify-between sticky top-0 z-50">
+    <div class="flex items-center space-x-3">
+      <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+      </div>
+      <div>
+        <h1 class="font-bold text-gray-800 text-sm"><%= session.exam_title %></h1>
+        <p class="text-xs text-gray-500"><%= studentName %></p>
+      </div>
+    </div>
+
+    <!-- Timer -->
+    <div class="flex items-center space-x-2">
+      <div id="timerDisplay" class="bg-red-50 border border-red-200 rounded-lg px-4 py-1.5 flex items-center space-x-2">
+        <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span id="timer" class="font-mono font-bold text-red-600">--:--</span>
+      </div>
+      <button onclick="requestFullscreen()" class="p-2 text-gray-500 hover:text-gray-700 transition cursor-pointer" title="Fullscreen">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="flex flex-1 overflow-hidden">
+    <!-- Main Content Area -->
+    <div class="flex-1 overflow-y-auto p-6">
+      <!-- Question Display -->
+      <div class="max-w-3xl mx-auto">
+        <div class="bg-white rounded-xl shadow-sm border p-6 mb-4" id="questionCard">
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-sm font-medium text-indigo-600" id="questionSection">Section</span>
+            <span class="text-sm text-gray-500" id="questionNumber">Question 1 of <%= session.total_questions %></span>
+          </div>
+
+          <h2 class="text-lg font-semibold text-gray-800 mb-6" id="questionText">Loading...</h2>
+
+          <% if (false) { %><img id="questionImage" class="mb-4 rounded-lg max-w-full" src=""><% } %>
+
+          <div class="space-y-3" id="optionsContainer">
+            <!-- Options will be populated by JS -->
+          </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="flex items-center justify-between">
+          <div class="flex space-x-2">
+            <button onclick="markForReview()" id="reviewBtn"
+                    class="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg text-sm font-medium hover:bg-amber-200 transition cursor-pointer">
+              Mark for Review
+            </button>
+            <button onclick="clearAnswer()"
+                    class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200 transition cursor-pointer">
+              Clear Response
+            </button>
+          </div>
+          <div class="flex space-x-2">
+            <button onclick="prevQuestion()"
+                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300 transition cursor-pointer">
+              &laquo; Previous
+            </button>
+            <button onclick="nextQuestion()"
+                    class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition cursor-pointer">
+              Next &raquo;
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Sidebar -->
+    <div class="w-72 bg-white border-l overflow-y-auto flex flex-col">
+      <!-- Webcam Feed -->
+      <div class="p-3 border-b">
+        <div class="bg-gray-900 rounded-lg overflow-hidden relative" style="height: 120px">
+          <video id="proctorCam" autoplay playsinline muted class="w-full h-full object-cover"></video>
+          <div class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full pulse"></div>
+          <div class="absolute bottom-1 left-1 text-xs text-white bg-black/50 px-1.5 py-0.5 rounded">LIVE</div>
+        </div>
+      </div>
+
+      <!-- Question Navigation Panel -->
+      <div class="p-3 border-b">
+        <h3 class="font-semibold text-gray-800 text-sm mb-2">Question Navigation</h3>
+        <div class="grid grid-cols-5 gap-1.5" id="questionNav">
+          <% for (let i = 0; i < questions.length; i++) { %>
+            <button onclick="goToQuestion(<%= i %>)"
+                    class="w-9 h-9 rounded-lg text-xs font-medium border transition cursor-pointer question-nav-btn"
+                    data-index="<%= i %>" id="navBtn<%= i %>">
+              <%= i + 1 %>
+            </button>
+          <% } %>
+        </div>
+
+        <!-- Legend -->
+        <div class="flex flex-wrap gap-2 mt-3 text-xs">
+          <div class="flex items-center space-x-1">
+            <div class="w-3 h-3 rounded bg-green-500"></div><span class="text-gray-500">Answered</span>
+          </div>
+          <div class="flex items-center space-x-1">
+            <div class="w-3 h-3 rounded bg-gray-200 border"></div><span class="text-gray-500">Not Answered</span>
+          </div>
+          <div class="flex items-center space-x-1">
+            <div class="w-3 h-3 rounded bg-amber-400"></div><span class="text-gray-500">Review</span>
+          </div>
+          <div class="flex items-center space-x-1">
+            <div class="w-3 h-3 rounded bg-indigo-500"></div><span class="text-gray-500">Current</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="p-3 border-b">
+        <h3 class="font-semibold text-gray-800 text-sm mb-2">Progress</h3>
+        <div class="space-y-1.5 text-sm">
+          <div class="flex justify-between"><span class="text-gray-500">Total Questions</span><span class="font-medium" id="statTotal"><%= questions.length %></span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Answered</span><span class="font-medium text-green-600" id="statAnswered">0</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Not Answered</span><span class="font-medium text-gray-600" id="statPending"><%= questions.length %></span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Marked for Review</span><span class="font-medium text-amber-600" id="statReview">0</span></div>
+        </div>
+      </div>
+
+      <!-- Violation Summary -->
+      <div class="p-3 border-b">
+        <h3 class="font-semibold text-gray-800 text-sm mb-2">Violation Summary</h3>
+        <div class="space-y-1.5 text-sm">
+          <div class="flex justify-between items-center">
+            <span class="text-gray-500">Tab Switch</span>
+            <span class="font-medium violation-count" id="vTabSwitch" data-count="<%= violationMap.tab_switch || 0 %>"><%= violationMap.tab_switch || 0 %></span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-gray-500">Copy</span>
+            <span class="font-medium violation-count" id="vCopy" data-count="<%= violationMap.copy || 0 %>"><%= violationMap.copy || 0 %></span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-gray-500">Paste</span>
+            <span class="font-medium violation-count" id="vPaste" data-count="<%= violationMap.paste || 0 %>"><%= violationMap.paste || 0 %></span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-gray-500">Other Alerts</span>
+            <span class="font-medium violation-count" id="vOther" data-count="0">0</span>
+          </div>
+        </div>
+        <!-- Risk Indicator -->
+        <div class="mt-3">
+          <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div id="riskBar" class="h-full bg-green-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+          <p class="text-xs text-center mt-1" id="riskLabel">
+            <span class="inline-block w-2 h-2 rounded-full bg-green-500 mr-1"></span>Safe
+          </p>
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <div class="p-3 mt-auto">
+        <button onclick="submitExam(false)"
+                class="w-full py-2.5 bg-red-600 text-white rounded-lg font-semibold text-sm hover:bg-red-700 transition cursor-pointer">
+          Submit Exam
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Warning Modal -->
+<div id="warningModal" class="hidden fixed inset-0 bg-black/50 z-[100] flex items-center justify-center">
+  <div class="bg-white rounded-xl shadow-2xl p-6 max-w-sm mx-4 text-center">
+    <div class="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+      <svg class="w-7 h-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+    </div>
+    <h3 class="font-bold text-gray-800 text-lg mb-2" id="warningTitle">Warning!</h3>
+    <p class="text-gray-600 text-sm mb-4" id="warningMessage">A violation has been detected.</p>
+    <button onclick="dismissWarning()" class="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition cursor-pointer">
+      I Understand
+    </button>
+  </div>
+</div>
+
+<!-- Submit Confirmation Modal -->
+<div id="submitModal" class="hidden fixed inset-0 bg-black/50 z-[100] flex items-center justify-center">
+  <div class="bg-white rounded-xl shadow-2xl p-6 max-w-sm mx-4 text-center">
+    <h3 class="font-bold text-gray-800 text-lg mb-2">Submit Examination?</h3>
+    <p class="text-gray-600 text-sm mb-4" id="submitSummary">Are you sure you want to submit?</p>
+    <div class="flex space-x-3 justify-center">
+      <button onclick="closeSubmitModal()" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition cursor-pointer">
+        Cancel
+      </button>
+      <button onclick="confirmSubmit()" class="px-6 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition cursor-pointer">
+        Confirm Submit
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== DATA ====================
+const questions = <%- JSON.stringify(questions) %>;
+const existingResponses = <%- JSON.stringify(responses) %>;
+const maxTabSwitches = <%= session.max_tab_switches %>;
+const maxViolations = <%= session.max_violations %>;
+const autoSaveInterval = <%= session.auto_save_interval || 15 %> * 1000;
+let remainingSeconds = <%= remainingSeconds %>;
+let currentIndex = 0;
+let answers = {};     // { questionId: selectedOption }
+let reviewed = {};    // { questionId: true }
+
+// Load existing responses
+existingResponses.forEach(r => {
+  if (r.selected_option) answers[r.question_id] = r.selected_option;
+  if (r.marked_for_review) reviewed[r.question_id] = true;
+});
+
+// ==================== TIMER ====================
+function updateTimerDisplay() {
+  const min = Math.floor(remainingSeconds / 60);
+  const sec = remainingSeconds % 60;
+  document.getElementById('timer').textContent =
+    String(min).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
+
+  if (remainingSeconds <= 300) {
+    document.getElementById('timerDisplay').className = 'bg-red-100 border border-red-300 rounded-lg px-4 py-1.5 flex items-center space-x-2';
+  }
+  if (remainingSeconds <= 0) {
+    submitExam(true);
+  }
+}
+
+setInterval(() => {
+  if (remainingSeconds > 0) {
+    remainingSeconds--;
+    updateTimerDisplay();
+  }
+}, 1000);
+updateTimerDisplay();
+
+// Save time to server periodically
+setInterval(() => {
+  fetch('/api/save-time', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ time_remaining: remainingSeconds })
+  });
+}, autoSaveInterval);
+
+// ==================== QUESTIONS ====================
+function renderQuestion() {
+  const q = questions[currentIndex];
+  document.getElementById('questionSection').textContent = q.section_title || 'General';
+  document.getElementById('questionNumber').textContent = `Question ${currentIndex + 1} of ${questions.length}`;
+  document.getElementById('questionText').textContent = q.question_text;
+
+  const opts = [
+    { key: 'A', text: q.option_a },
+    { key: 'B', text: q.option_b },
+    { key: 'C', text: q.option_c },
+    { key: 'D', text: q.option_d }
+  ];
+
+  const container = document.getElementById('optionsContainer');
+  container.innerHTML = '';
+  opts.forEach(opt => {
+    if (!opt.text) return;
+    const selected = answers[q.id] === opt.key;
+    const div = document.createElement('div');
+    div.className = `p-4 border-2 rounded-xl cursor-pointer transition hover:border-indigo-300 ${selected ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200'}`;
+    div.onclick = () => selectOption(q.id, opt.key);
+    div.innerHTML = `
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-bold ${selected ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-gray-300 text-gray-500'}">
+          ${opt.key}
+        </div>
+        <span class="${selected ? 'text-indigo-700 font-medium' : 'text-gray-700'}">${opt.text}</span>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+
+  // Update review button
+  document.getElementById('reviewBtn').textContent = reviewed[q.id] ? 'Remove Review Mark' : 'Mark for Review';
+
+  updateNavigation();
+  updateStats();
+}
+
+function selectOption(qId, option) {
+  answers[qId] = option;
+  renderQuestion();
+  saveAnswer(qId, option, !!reviewed[qId]);
+}
+
+function clearAnswer() {
+  const q = questions[currentIndex];
+  delete answers[q.id];
+  renderQuestion();
+  saveAnswer(q.id, null, !!reviewed[q.id]);
+}
+
+function markForReview() {
+  const q = questions[currentIndex];
+  if (reviewed[q.id]) {
+    delete reviewed[q.id];
+  } else {
+    reviewed[q.id] = true;
+  }
+  renderQuestion();
+  saveAnswer(q.id, answers[q.id] || null, !!reviewed[q.id]);
+}
+
+function nextQuestion() {
+  if (currentIndex < questions.length - 1) {
+    currentIndex++;
+    renderQuestion();
+  }
+}
+
+function prevQuestion() {
+  if (currentIndex > 0) {
+    currentIndex--;
+    renderQuestion();
+  }
+}
+
+function goToQuestion(idx) {
+  currentIndex = idx;
+  renderQuestion();
+}
+
+function updateNavigation() {
+  document.querySelectorAll('.question-nav-btn').forEach((btn, i) => {
+    const q = questions[i];
+    let cls = 'w-9 h-9 rounded-lg text-xs font-medium border transition cursor-pointer question-nav-btn ';
+    if (i === currentIndex) {
+      cls += 'bg-indigo-500 text-white border-indigo-500';
+    } else if (reviewed[q.id]) {
+      cls += 'bg-amber-400 text-white border-amber-400';
+    } else if (answers[q.id]) {
+      cls += 'bg-green-500 text-white border-green-500';
+    } else {
+      cls += 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200';
+    }
+    btn.className = cls;
+  });
+}
+
+function updateStats() {
+  const answered = Object.keys(answers).length;
+  const reviewCount = Object.keys(reviewed).length;
+  document.getElementById('statAnswered').textContent = answered;
+  document.getElementById('statPending').textContent = questions.length - answered;
+  document.getElementById('statReview').textContent = reviewCount;
+}
+
+// Save answer to server
+function saveAnswer(qId, option, review) {
+  fetch('/api/save-answer', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question_id: qId, selected_option: option, marked_for_review: review })
+  });
+}
+
+// ==================== PROCTORING ====================
+let totalViolations = 0;
+
+// Initialize webcam for proctoring
+(async function initProctoring() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    document.getElementById('proctorCam').srcObject = stream;
+  } catch (err) {
+    console.error('Proctor cam error:', err);
+  }
+})();
+
+// Enter fullscreen
+function requestFullscreen() {
+  const el = document.documentElement;
+  if (el.requestFullscreen) el.requestFullscreen();
+  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  else if (el.msRequestFullscreen) el.msRequestFullscreen();
+}
+requestFullscreen();
+
+// 1. Tab Switch Detection
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    logViolation('tab_switch', 'User switched tabs or minimized window');
+  }
+});
+
+window.addEventListener('blur', () => {
+  logViolation('tab_switch', 'Window lost focus');
+});
+
+// 2. Copy Detection
+document.addEventListener('copy', (e) => {
+  e.preventDefault();
+  logViolation('copy', 'Copy attempt detected (Ctrl+C or context menu)');
+});
+
+// 3. Paste Detection
+document.addEventListener('paste', (e) => {
+  e.preventDefault();
+  logViolation('paste', 'Paste attempt detected (Ctrl+V)');
+});
+
+// Disable right-click context menu
+document.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+});
+
+// Disable Ctrl+C, Ctrl+V, Ctrl+A
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && (e.key === 'c' || e.key === 'v' || e.key === 'a' || e.key === 'u')) {
+    e.preventDefault();
+    if (e.key === 'c') logViolation('copy', 'Ctrl+C keyboard shortcut');
+    if (e.key === 'v') logViolation('paste', 'Ctrl+V keyboard shortcut');
+  }
+});
+
+// 6. Fullscreen Detection
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement) {
+    logViolation('fullscreen_exit', 'Exited fullscreen mode');
+    showWarning('Fullscreen Required', 'Please stay in fullscreen mode during the exam. Click the button below and press F11.');
+  }
+});
+
+// 7. Inactivity Detection
+let inactivityTimer;
+function resetInactivity() {
+  clearTimeout(inactivityTimer);
+  inactivityTimer = setTimeout(() => {
+    logViolation('inactivity', 'No activity detected for 60 seconds');
+    showWarning('Inactivity Detected', 'No mouse or keyboard activity detected. Please continue your exam.');
+  }, 60000);
+}
+document.addEventListener('mousemove', resetInactivity);
+document.addEventListener('keypress', resetInactivity);
+resetInactivity();
+
+function logViolation(type, details) {
+  fetch('/api/log-violation', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type, details, severity: type === 'tab_switch' ? 'high' : 'medium' })
+  }).then(r => r.json()).then(data => {
+    if (data.success) {
+      totalViolations = data.totalViolations;
+      updateViolationDisplay(type);
+      if (data.shouldAutoSubmit) {
+        submitExam(true);
+      }
+    }
+  });
+
+  fetch('/api/log-event', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ event_type: 'violation_' + type, event_data: { details } })
+  });
+}
+
+function updateViolationDisplay(type) {
+  const mapping = {
+    'tab_switch': 'vTabSwitch',
+    'copy': 'vCopy',
+    'paste': 'vPaste'
+  };
+
+  const id = mapping[type] || 'vOther';
+  const el = document.getElementById(id);
+  const current = parseInt(el.dataset.count || 0) + 1;
+  el.dataset.count = current;
+  el.textContent = current;
+  el.className = 'font-medium violation-count ' + (current >= 3 ? 'text-red-600' : current >= 1 ? 'text-amber-600' : 'text-green-600');
+
+  // Update risk bar
+  const riskPct = Math.min(100, (totalViolations / maxViolations) * 100);
+  const bar = document.getElementById('riskBar');
+  bar.style.width = riskPct + '%';
+  const label = document.getElementById('riskLabel');
+  if (riskPct >= 70) {
+    bar.className = 'h-full bg-red-500 rounded-full transition-all duration-500';
+    label.innerHTML = '<span class="inline-block w-2 h-2 rounded-full bg-red-500 mr-1"></span>High Risk';
+  } else if (riskPct >= 40) {
+    bar.className = 'h-full bg-amber-500 rounded-full transition-all duration-500';
+    label.innerHTML = '<span class="inline-block w-2 h-2 rounded-full bg-amber-500 mr-1"></span>Warning';
+  } else {
+    bar.className = 'h-full bg-green-500 rounded-full transition-all duration-500';
+    label.innerHTML = '<span class="inline-block w-2 h-2 rounded-full bg-green-500 mr-1"></span>Safe';
+  }
+}
+
+// ==================== WARNINGS & MODALS ====================
+function showWarning(title, message) {
+  document.getElementById('warningTitle').textContent = title;
+  document.getElementById('warningMessage').textContent = message;
+  document.getElementById('warningModal').classList.remove('hidden');
+}
+
+function dismissWarning() {
+  document.getElementById('warningModal').classList.add('hidden');
+  requestFullscreen();
+}
+
+function submitExam(auto) {
+  if (auto) {
+    confirmSubmitAction(true);
+    return;
+  }
+  const answered = Object.keys(answers).length;
+  document.getElementById('submitSummary').textContent =
+    `You have answered ${answered} out of ${questions.length} questions. This action cannot be undone.`;
+  document.getElementById('submitModal').classList.remove('hidden');
+}
+
+function closeSubmitModal() {
+  document.getElementById('submitModal').classList.add('hidden');
+}
+
+function confirmSubmit() {
+  closeSubmitModal();
+  confirmSubmitAction(false);
+}
+
+async function confirmSubmitAction(auto) {
+  const res = await fetch('/exam/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ auto })
+  });
+  const data = await res.json();
+  if (data.success) {
+    if (document.fullscreenElement) document.exitFullscreen();
+    window.location.href = data.redirect;
+  }
+}
+
+// ==================== INIT ====================
+renderQuestion();
+</script>
+
+<%- include('../partials/footer') %>

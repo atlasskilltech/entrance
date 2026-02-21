@@ -1,0 +1,249 @@
+<%- include('../partials/head', { title: 'Audio & Video Verification' }) %>
+
+<div class="min-h-screen bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl p-8 fade-in">
+    <div class="text-center mb-6">
+      <h1 class="text-2xl font-bold text-gray-800">Audio & Video Verification</h1>
+      <p class="text-gray-500 mt-1"><%= session.exam_title %></p>
+    </div>
+
+    <!-- Progress Steps -->
+    <div class="flex items-center justify-center mb-8 space-x-2">
+      <div class="flex items-center space-x-2">
+        <div class="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">&#10003;</div>
+        <span class="text-sm text-green-600">System Check</span>
+      </div>
+      <div class="w-8 h-0.5 bg-green-400"></div>
+      <div class="flex items-center space-x-2">
+        <div class="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
+        <span class="text-sm font-medium text-indigo-600">A/V Check</span>
+      </div>
+      <div class="w-8 h-0.5 bg-gray-300"></div>
+      <div class="flex items-center space-x-2">
+        <div class="w-8 h-8 bg-gray-300 text-gray-500 rounded-full flex items-center justify-center text-sm font-bold">3</div>
+        <span class="text-sm text-gray-400">Rules</span>
+      </div>
+      <div class="w-8 h-0.5 bg-gray-300"></div>
+      <div class="flex items-center space-x-2">
+        <div class="w-8 h-8 bg-gray-300 text-gray-500 rounded-full flex items-center justify-center text-sm font-bold">4</div>
+        <span class="text-sm text-gray-400">Exam</span>
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6">
+      <!-- Microphone Test Section -->
+      <div class="border rounded-xl p-5">
+        <h3 class="font-bold text-gray-800 mb-3 flex items-center">
+          <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-14 0m14 0a7 7 0 00-14 0m14 0v1a7 7 0 01-14 0v-1m7 8v4m-4 0h8"/></svg>
+          Microphone Test
+        </h3>
+        <p class="text-sm text-gray-500 mb-3">Please read aloud:</p>
+        <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-3 mb-4 text-center">
+          <p class="text-indigo-700 font-medium italic">"Hi, I am <strong><%= studentName %></strong>, and I am ready for this test."</p>
+        </div>
+
+        <!-- Audio waveform visualization -->
+        <div class="bg-gray-100 rounded-lg h-16 mb-3 flex items-center justify-center overflow-hidden" id="waveformContainer">
+          <canvas id="waveform" width="300" height="60" class="w-full"></canvas>
+        </div>
+
+        <div class="flex space-x-2">
+          <button id="startRecordBtn" onclick="startRecording()"
+                  class="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition cursor-pointer">
+            Start Recording
+          </button>
+          <button id="stopRecordBtn" onclick="stopRecording()" disabled
+                  class="flex-1 px-4 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed">
+            Stop Recording
+          </button>
+        </div>
+        <div id="micStatus" class="mt-2 text-sm text-center text-gray-400">Click "Start Recording" to begin</div>
+      </div>
+
+      <!-- Webcam & Photo Section -->
+      <div class="border rounded-xl p-5">
+        <h3 class="font-bold text-gray-800 mb-3 flex items-center">
+          <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+          Webcam & Face Capture
+        </h3>
+
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3 text-xs text-yellow-700">
+          <p class="font-medium mb-1">Instructions:</p>
+          <ul class="list-disc pl-4 space-y-0.5">
+            <li>Ensure proper lighting</li>
+            <li>Face must be fully visible (forehead, eyes, nose, lips)</li>
+            <li>Remove masks / sunglasses</li>
+          </ul>
+        </div>
+
+        <div class="relative bg-gray-900 rounded-lg overflow-hidden mb-3" style="height: 200px">
+          <video id="webcam" autoplay playsinline muted class="w-full h-full object-cover"></video>
+          <canvas id="photoCanvas" class="hidden"></canvas>
+          <img id="capturedPhoto" class="hidden w-full h-full object-cover">
+          <div id="faceOverlay" class="absolute inset-0 flex items-center justify-center">
+            <div class="w-32 h-40 border-2 border-dashed border-white/50 rounded-2xl"></div>
+          </div>
+        </div>
+
+        <div class="flex space-x-2">
+          <button id="takePhotoBtn" onclick="takePhoto()"
+                  class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition cursor-pointer">
+            Take Photo
+          </button>
+          <button id="retakePhotoBtn" onclick="retakePhoto()" class="hidden flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300 transition cursor-pointer">
+            Retake
+          </button>
+        </div>
+        <div id="photoStatus" class="mt-2 text-sm text-center text-gray-400">Position your face in the frame</div>
+      </div>
+    </div>
+
+    <!-- Continue Button -->
+    <div class="mt-8 text-center">
+      <button id="continueBtn" disabled
+              class="px-8 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition shadow-lg disabled:bg-gray-300 disabled:cursor-not-allowed cursor-pointer"
+              onclick="proceedToRules()">
+        Continue to Exam Rules
+        <svg class="w-4 h-4 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+let mediaStream = null;
+let mediaRecorder = null;
+let audioChunks = [];
+let micDone = false, photoDone = false;
+let audioContext, analyser, dataArray;
+
+// Initialize webcam
+async function initWebcam() {
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    document.getElementById('webcam').srcObject = mediaStream;
+
+    // Setup audio analyser for waveform
+    audioContext = new AudioContext();
+    const source = audioContext.createMediaStreamSource(mediaStream);
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 256;
+    source.connect(analyser);
+    dataArray = new Uint8Array(analyser.frequencyBinCount);
+  } catch (err) {
+    console.error('Media access error:', err);
+  }
+}
+initWebcam();
+
+// Audio waveform visualization
+function drawWaveform() {
+  if (!analyser) return;
+  const canvas = document.getElementById('waveform');
+  const ctx = canvas.getContext('2d');
+  analyser.getByteFrequencyData(dataArray);
+  ctx.fillStyle = '#f3f4f6';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const barWidth = (canvas.width / dataArray.length) * 2.5;
+  let x = 0;
+  for (let i = 0; i < dataArray.length; i++) {
+    const barHeight = (dataArray[i] / 255) * canvas.height;
+    ctx.fillStyle = `rgb(79, 70, 229)`;
+    ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+    x += barWidth + 1;
+  }
+  requestAnimationFrame(drawWaveform);
+}
+drawWaveform();
+
+function startRecording() {
+  audioChunks = [];
+  mediaRecorder = new MediaRecorder(mediaStream);
+  mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+  mediaRecorder.onstop = () => {
+    micDone = true;
+    document.getElementById('micStatus').textContent = 'Audio recorded successfully!';
+    document.getElementById('micStatus').className = 'mt-2 text-sm text-center text-green-600 font-medium';
+    checkReady();
+  };
+  mediaRecorder.start();
+  document.getElementById('startRecordBtn').disabled = true;
+  document.getElementById('startRecordBtn').className = 'flex-1 px-4 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed';
+  document.getElementById('stopRecordBtn').disabled = false;
+  document.getElementById('stopRecordBtn').className = 'flex-1 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition cursor-pointer';
+  document.getElementById('micStatus').textContent = 'Recording... Speak now';
+  document.getElementById('micStatus').className = 'mt-2 text-sm text-center text-red-500 font-medium pulse';
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+  }
+  document.getElementById('stopRecordBtn').disabled = true;
+  document.getElementById('stopRecordBtn').className = 'flex-1 px-4 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed';
+}
+
+function takePhoto() {
+  const video = document.getElementById('webcam');
+  const canvas = document.getElementById('photoCanvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+  document.getElementById('capturedPhoto').src = dataUrl;
+  document.getElementById('capturedPhoto').classList.remove('hidden');
+  document.getElementById('webcam').classList.add('hidden');
+  document.getElementById('faceOverlay').classList.add('hidden');
+  document.getElementById('takePhotoBtn').classList.add('hidden');
+  document.getElementById('retakePhotoBtn').classList.remove('hidden');
+  document.getElementById('photoStatus').textContent = 'Photo captured! Face detected.';
+  document.getElementById('photoStatus').className = 'mt-2 text-sm text-center text-green-600 font-medium';
+  photoDone = true;
+  checkReady();
+}
+
+function retakePhoto() {
+  document.getElementById('capturedPhoto').classList.add('hidden');
+  document.getElementById('webcam').classList.remove('hidden');
+  document.getElementById('faceOverlay').classList.remove('hidden');
+  document.getElementById('takePhotoBtn').classList.remove('hidden');
+  document.getElementById('retakePhotoBtn').classList.add('hidden');
+  document.getElementById('photoStatus').textContent = 'Position your face in the frame';
+  document.getElementById('photoStatus').className = 'mt-2 text-sm text-center text-gray-400';
+  photoDone = false;
+  checkReady();
+}
+
+function checkReady() {
+  document.getElementById('continueBtn').disabled = !(micDone && photoDone);
+}
+
+async function proceedToRules() {
+  const btn = document.getElementById('continueBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  // Convert captured photo to blob and upload
+  const canvas = document.getElementById('photoCanvas');
+  canvas.toBlob(async (blob) => {
+    const formData = new FormData();
+    formData.append('photo', blob, 'face_capture.jpg');
+
+    const res = await fetch('/exam/save-photo', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.success) {
+      // Stop all media tracks
+      if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+      window.location.href = data.redirect;
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Continue to Exam Rules';
+      alert('Failed to save photo. Please try again.');
+    }
+  }, 'image/jpeg', 0.8);
+}
+</script>
+
+<%- include('../partials/footer') %>
