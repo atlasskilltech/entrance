@@ -9,23 +9,23 @@ router.get('/admin/dashboard', isAdminAuthenticated, async (req, res) => {
   try {
     const [stats] = await db.query(`
       SELECT
-        (SELECT COUNT(*) FROM students) as total_students,
+        (SELECT COUNT(*) FROM ent_students) as total_students,
         (SELECT COUNT(*) FROM ent_sessions) as total_sessions,
         (SELECT COUNT(*) FROM ent_sessions WHERE status = 'in_progress') as active_sessions,
         (SELECT COUNT(*) FROM ent_sessions WHERE status IN ('submitted', 'auto_submitted')) as completed_sessions,
         (SELECT COUNT(*) FROM ent_results WHERE admin_status = 'flagged') as flagged_sessions,
-        (SELECT COUNT(*) FROM degrees) as total_degrees,
-        (SELECT COUNT(*) FROM exams) as total_exams,
-        (SELECT COUNT(*) FROM questions) as total_questions
+        (SELECT COUNT(*) FROM ent_degrees) as total_degrees,
+        (SELECT COUNT(*) FROM ent_exams) as total_exams,
+        (SELECT COUNT(*) FROM ent_questions) as total_questions
     `);
 
     const [recentSessions] = await db.query(`
       SELECT es.*, s.name as student_name, s.application_id, e.title as exam_title,
              er.score, er.risk_score, er.confidence_score, er.admin_status,
-             (SELECT COUNT(*) FROM violations v WHERE v.session_id = es.id) as violation_count
+             (SELECT COUNT(*) FROM ent_violations v WHERE v.session_id = es.id) as violation_count
       FROM ent_sessions es
-      JOIN students s ON es.student_id = s.id
-      JOIN exams e ON es.exam_id = e.id
+      JOIN ent_students s ON es.student_id = s.id
+      JOIN ent_exams e ON es.exam_id = e.id
       LEFT JOIN ent_results er ON er.session_id = es.id
       ORDER BY es.created_at DESC LIMIT 50
     `);
@@ -47,8 +47,8 @@ router.get('/admin/dashboard', isAdminAuthenticated, async (req, res) => {
 router.get('/admin/degrees', isAdminAuthenticated, async (req, res) => {
   try {
     const [degrees] = await db.query(`
-      SELECT d.*, (SELECT COUNT(*) FROM exams e WHERE e.degree_id = d.id) as exam_count
-      FROM degrees d ORDER BY d.name
+      SELECT d.*, (SELECT COUNT(*) FROM ent_exams e WHERE e.degree_id = d.id) as exam_count
+      FROM ent_degrees d ORDER BY d.name
     `);
     res.render('admin/degrees', { adminName: req.session.adminName, activePage: 'degrees', degrees });
   } catch (err) {
@@ -61,7 +61,7 @@ router.post('/admin/degrees/create', isAdminAuthenticated, async (req, res) => {
   try {
     const { name, code, description, department, duration_years } = req.body;
     await db.query(
-      'INSERT INTO degrees (name, code, description, department, duration_years) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO ent_degrees (name, code, description, department, duration_years) VALUES (?, ?, ?, ?, ?)',
       [name, code, description || null, department || null, duration_years || 4]
     );
     res.json({ success: true });
@@ -75,7 +75,7 @@ router.post('/admin/degrees/:id/update', isAdminAuthenticated, async (req, res) 
   try {
     const { name, code, description, department, duration_years, is_active } = req.body;
     await db.query(
-      'UPDATE degrees SET name=?, code=?, description=?, department=?, duration_years=?, is_active=? WHERE id=?',
+      'UPDATE ent_degrees SET name=?, code=?, description=?, department=?, duration_years=?, is_active=? WHERE id=?',
       [name, code, description || null, department || null, duration_years || 4, is_active ? 1 : 0, req.params.id]
     );
     res.json({ success: true });
@@ -87,7 +87,7 @@ router.post('/admin/degrees/:id/update', isAdminAuthenticated, async (req, res) 
 
 router.post('/admin/degrees/:id/delete', isAdminAuthenticated, async (req, res) => {
   try {
-    await db.query('DELETE FROM degrees WHERE id = ?', [req.params.id]);
+    await db.query('DELETE FROM ent_degrees WHERE id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (err) {
     console.error(err);
@@ -101,13 +101,13 @@ router.get('/admin/exams', isAdminAuthenticated, async (req, res) => {
   try {
     const [exams] = await db.query(`
       SELECT e.*, d.name as degree_name, d.code as degree_code,
-             (SELECT COUNT(*) FROM sections s WHERE s.exam_id = e.id) as section_count,
-             (SELECT COUNT(*) FROM questions q WHERE q.exam_id = e.id) as question_count
-      FROM exams e
-      LEFT JOIN degrees d ON e.degree_id = d.id
+             (SELECT COUNT(*) FROM ent_sections s WHERE s.exam_id = e.id) as section_count,
+             (SELECT COUNT(*) FROM ent_questions q WHERE q.exam_id = e.id) as question_count
+      FROM ent_exams e
+      LEFT JOIN ent_degrees d ON e.degree_id = d.id
       ORDER BY e.created_at DESC
     `);
-    const [degrees] = await db.query('SELECT * FROM degrees WHERE is_active = 1 ORDER BY name');
+    const [degrees] = await db.query('SELECT * FROM ent_degrees WHERE is_active = 1 ORDER BY name');
     res.render('admin/exams', { adminName: req.session.adminName, activePage: 'exams', exams, degrees });
   } catch (err) {
     console.error(err);
@@ -126,7 +126,7 @@ router.post('/admin/exams/create', isAdminAuthenticated, async (req, res) => {
     } = req.body;
 
     const [result] = await db.query(
-      `INSERT INTO exams (title, exam_code, description, instructions, degree_id,
+      `INSERT INTO ent_exams (title, exam_code, description, instructions, degree_id,
         duration_minutes, total_questions, total_marks, passing_marks,
         negative_marking, negative_mark_value, shuffle_questions,
         show_result_immediately, max_tab_switches, max_violations,
@@ -158,7 +158,7 @@ router.post('/admin/exams/:id/update', isAdminAuthenticated, async (req, res) =>
     } = req.body;
 
     await db.query(
-      `UPDATE exams SET title=?, exam_code=?, description=?, instructions=?, degree_id=?,
+      `UPDATE ent_exams SET title=?, exam_code=?, description=?, instructions=?, degree_id=?,
         duration_minutes=?, total_questions=?, total_marks=?, passing_marks=?,
         negative_marking=?, negative_mark_value=?, shuffle_questions=?,
         show_result_immediately=?, max_tab_switches=?, max_violations=?,
@@ -182,7 +182,7 @@ router.post('/admin/exams/:id/update', isAdminAuthenticated, async (req, res) =>
 
 router.post('/admin/exams/:id/delete', isAdminAuthenticated, async (req, res) => {
   try {
-    await db.query('DELETE FROM exams WHERE id = ?', [req.params.id]);
+    await db.query('DELETE FROM ent_exams WHERE id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (err) {
     console.error(err);
@@ -196,23 +196,23 @@ router.get('/admin/exams/:id', isAdminAuthenticated, async (req, res) => {
   try {
     const [exams] = await db.query(`
       SELECT e.*, d.name as degree_name, d.code as degree_code
-      FROM exams e LEFT JOIN degrees d ON e.degree_id = d.id
+      FROM ent_exams e LEFT JOIN ent_degrees d ON e.degree_id = d.id
       WHERE e.id = ?
     `, [req.params.id]);
     if (exams.length === 0) return res.redirect('/admin/exams');
 
     const [sections] = await db.query(`
-      SELECT s.*, (SELECT COUNT(*) FROM questions q WHERE q.section_id = s.id) as actual_questions
-      FROM sections s WHERE s.exam_id = ? ORDER BY s.sort_order
+      SELECT s.*, (SELECT COUNT(*) FROM ent_questions q WHERE q.section_id = s.id) as actual_questions
+      FROM ent_sections s WHERE s.exam_id = ? ORDER BY s.sort_order
     `, [req.params.id]);
 
     const [questions] = await db.query(`
-      SELECT q.*, s.title as section_title FROM questions q
-      LEFT JOIN sections s ON q.section_id = s.id
+      SELECT q.*, s.title as section_title FROM ent_questions q
+      LEFT JOIN ent_sections s ON q.section_id = s.id
       WHERE q.exam_id = ? ORDER BY q.sort_order
     `, [req.params.id]);
 
-    const [degrees] = await db.query('SELECT * FROM degrees WHERE is_active = 1 ORDER BY name');
+    const [degrees] = await db.query('SELECT * FROM ent_degrees WHERE is_active = 1 ORDER BY name');
 
     res.render('admin/exam-detail', {
       adminName: req.session.adminName,
@@ -234,11 +234,11 @@ router.post('/admin/exams/:examId/sections/create', isAdminAuthenticated, async 
   try {
     const { title, section_type, description, num_questions, marks_per_question, time_limit_minutes, is_mandatory, shuffle_questions } = req.body;
 
-    const [maxOrder] = await db.query('SELECT COALESCE(MAX(sort_order), 0) + 1 as next_order FROM sections WHERE exam_id = ?', [req.params.examId]);
+    const [maxOrder] = await db.query('SELECT COALESCE(MAX(sort_order), 0) + 1 as next_order FROM ent_sections WHERE exam_id = ?', [req.params.examId]);
     const totalMarks = (num_questions || 0) * (marks_per_question || 1);
 
     const [result] = await db.query(
-      `INSERT INTO sections (exam_id, title, section_type, description, num_questions, marks_per_question, total_marks, time_limit_minutes, is_mandatory, shuffle_questions, sort_order)
+      `INSERT INTO ent_sections (exam_id, title, section_type, description, num_questions, marks_per_question, total_marks, time_limit_minutes, is_mandatory, shuffle_questions, sort_order)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [req.params.examId, title, section_type || 'mcq', description || null,
        num_questions || 0, marks_per_question || 1, totalMarks,
@@ -262,7 +262,7 @@ router.post('/admin/sections/:id/update', isAdminAuthenticated, async (req, res)
     const totalMarks = (num_questions || 0) * (marks_per_question || 1);
 
     await db.query(
-      `UPDATE sections SET title=?, section_type=?, description=?, num_questions=?, marks_per_question=?, total_marks=?, time_limit_minutes=?, is_mandatory=?, shuffle_questions=?, sort_order=? WHERE id=?`,
+      `UPDATE ent_sections SET title=?, section_type=?, description=?, num_questions=?, marks_per_question=?, total_marks=?, time_limit_minutes=?, is_mandatory=?, shuffle_questions=?, sort_order=? WHERE id=?`,
       [title, section_type || 'mcq', description || null,
        num_questions || 0, marks_per_question || 1, totalMarks,
        time_limit_minutes || 0, is_mandatory ? 1 : 0, shuffle_questions ? 1 : 0,
@@ -270,7 +270,7 @@ router.post('/admin/sections/:id/update', isAdminAuthenticated, async (req, res)
     );
 
     // Recalculate exam totals
-    const [sec] = await db.query('SELECT exam_id FROM sections WHERE id = ?', [req.params.id]);
+    const [sec] = await db.query('SELECT exam_id FROM ent_sections WHERE id = ?', [req.params.id]);
     if (sec.length > 0) await recalcExamTotals(sec[0].exam_id);
 
     res.json({ success: true });
@@ -282,8 +282,8 @@ router.post('/admin/sections/:id/update', isAdminAuthenticated, async (req, res)
 
 router.post('/admin/sections/:id/delete', isAdminAuthenticated, async (req, res) => {
   try {
-    const [sec] = await db.query('SELECT exam_id FROM sections WHERE id = ?', [req.params.id]);
-    await db.query('DELETE FROM sections WHERE id = ?', [req.params.id]);
+    const [sec] = await db.query('SELECT exam_id FROM ent_sections WHERE id = ?', [req.params.id]);
+    await db.query('DELETE FROM ent_sections WHERE id = ?', [req.params.id]);
     if (sec.length > 0) await recalcExamTotals(sec[0].exam_id);
     res.json({ success: true });
   } catch (err) {
@@ -296,10 +296,10 @@ router.post('/admin/sections/:id/delete', isAdminAuthenticated, async (req, res)
 
 router.get('/admin/exams/:examId/questions/add', isAdminAuthenticated, async (req, res) => {
   try {
-    const [exams] = await db.query('SELECT * FROM exams WHERE id = ?', [req.params.examId]);
+    const [exams] = await db.query('SELECT * FROM ent_exams WHERE id = ?', [req.params.examId]);
     if (exams.length === 0) return res.redirect('/admin/exams');
 
-    const [sections] = await db.query('SELECT * FROM sections WHERE exam_id = ? ORDER BY sort_order', [req.params.examId]);
+    const [sections] = await db.query('SELECT * FROM ent_sections WHERE exam_id = ? ORDER BY sort_order', [req.params.examId]);
 
     res.render('admin/question-form', {
       adminName: req.session.adminName,
@@ -317,12 +317,12 @@ router.get('/admin/exams/:examId/questions/add', isAdminAuthenticated, async (re
 
 router.get('/admin/questions/:id/edit', isAdminAuthenticated, async (req, res) => {
   try {
-    const [questions] = await db.query('SELECT * FROM questions WHERE id = ?', [req.params.id]);
+    const [questions] = await db.query('SELECT * FROM ent_questions WHERE id = ?', [req.params.id]);
     if (questions.length === 0) return res.redirect('/admin/exams');
 
     const question = questions[0];
-    const [exams] = await db.query('SELECT * FROM exams WHERE id = ?', [question.exam_id]);
-    const [sections] = await db.query('SELECT * FROM sections WHERE exam_id = ? ORDER BY sort_order', [question.exam_id]);
+    const [exams] = await db.query('SELECT * FROM ent_exams WHERE id = ?', [question.exam_id]);
+    const [sections] = await db.query('SELECT * FROM ent_sections WHERE exam_id = ? ORDER BY sort_order', [question.exam_id]);
 
     res.render('admin/question-form', {
       adminName: req.session.adminName,
@@ -346,10 +346,10 @@ router.post('/admin/exams/:examId/questions/create', isAdminAuthenticated, async
       explanation, marks
     } = req.body;
 
-    const [maxOrder] = await db.query('SELECT COALESCE(MAX(sort_order), 0) + 1 as next_order FROM questions WHERE exam_id = ?', [req.params.examId]);
+    const [maxOrder] = await db.query('SELECT COALESCE(MAX(sort_order), 0) + 1 as next_order FROM ent_questions WHERE exam_id = ?', [req.params.examId]);
 
     await db.query(
-      `INSERT INTO questions (exam_id, section_id, question_type, difficulty, question_text,
+      `INSERT INTO ent_questions (exam_id, section_id, question_type, difficulty, question_text,
         option_a, option_b, option_c, option_d, correct_option, explanation, marks, sort_order)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [req.params.examId, section_id || null, question_type || 'mcq', difficulty || 'medium',
@@ -374,7 +374,7 @@ router.post('/admin/questions/:id/update', isAdminAuthenticated, async (req, res
     } = req.body;
 
     await db.query(
-      `UPDATE questions SET section_id=?, question_type=?, difficulty=?, question_text=?,
+      `UPDATE ent_questions SET section_id=?, question_type=?, difficulty=?, question_text=?,
         option_a=?, option_b=?, option_c=?, option_d=?, correct_option=?,
         explanation=?, marks=?, sort_order=? WHERE id=?`,
       [section_id || null, question_type || 'mcq', difficulty || 'medium',
@@ -390,8 +390,8 @@ router.post('/admin/questions/:id/update', isAdminAuthenticated, async (req, res
 
 router.post('/admin/questions/:id/delete', isAdminAuthenticated, async (req, res) => {
   try {
-    const [q] = await db.query('SELECT exam_id FROM questions WHERE id = ?', [req.params.id]);
-    await db.query('DELETE FROM questions WHERE id = ?', [req.params.id]);
+    const [q] = await db.query('SELECT exam_id FROM ent_questions WHERE id = ?', [req.params.id]);
+    await db.query('DELETE FROM ent_questions WHERE id = ?', [req.params.id]);
     if (q.length > 0) await recalcExamTotals(q[0].exam_id);
     res.json({ success: true });
   } catch (err) {
@@ -407,10 +407,10 @@ router.get('/admin/sessions', isAdminAuthenticated, async (req, res) => {
     const [sessions] = await db.query(`
       SELECT es.*, s.name as student_name, s.application_id, e.title as exam_title,
              er.score, er.risk_score, er.confidence_score, er.admin_status,
-             (SELECT COUNT(*) FROM violations v WHERE v.session_id = es.id) as violation_count
+             (SELECT COUNT(*) FROM ent_violations v WHERE v.session_id = es.id) as violation_count
       FROM ent_sessions es
-      JOIN students s ON es.student_id = s.id
-      JOIN exams e ON es.exam_id = e.id
+      JOIN ent_students s ON es.student_id = s.id
+      JOIN ent_exams e ON es.exam_id = e.id
       LEFT JOIN ent_results er ON er.session_id = es.id
       ORDER BY es.created_at DESC LIMIT 100
     `);
@@ -430,8 +430,8 @@ router.get('/admin/session/:id', isAdminAuthenticated, async (req, res) => {
              er.total_answered, er.correct_answers, er.score, er.risk_score,
              er.confidence_score, er.admin_status, er.admin_notes
       FROM ent_sessions es
-      JOIN students s ON es.student_id = s.id
-      JOIN exams e ON es.exam_id = e.id
+      JOIN ent_students s ON es.student_id = s.id
+      JOIN ent_exams e ON es.exam_id = e.id
       LEFT JOIN ent_results er ON er.session_id = es.id
       WHERE es.id = ?
     `, [req.params.id]);
@@ -439,27 +439,27 @@ router.get('/admin/session/:id', isAdminAuthenticated, async (req, res) => {
     if (sessions.length === 0) return res.redirect('/admin/dashboard');
 
     const [violations] = await db.query(
-      'SELECT * FROM violations WHERE session_id = ? ORDER BY timestamp',
+      'SELECT * FROM ent_violations WHERE session_id = ? ORDER BY timestamp',
       [req.params.id]
     );
 
     const [violationSummary] = await db.query(
-      'SELECT type, COUNT(*) as count FROM violations WHERE session_id = ? GROUP BY type',
+      'SELECT type, COUNT(*) as count FROM ent_violations WHERE session_id = ? GROUP BY type',
       [req.params.id]
     );
 
     const [responses] = await db.query(`
       SELECT r.*, q.question_text, q.correct_option, q.marks,
              s.title as section_title
-      FROM responses r
-      JOIN questions q ON r.question_id = q.id
-      LEFT JOIN sections s ON q.section_id = s.id
+      FROM ent_responses r
+      JOIN ent_questions q ON r.question_id = q.id
+      LEFT JOIN ent_sections s ON q.section_id = s.id
       WHERE r.session_id = ?
       ORDER BY q.sort_order
     `, [req.params.id]);
 
     const [logs] = await db.query(
-      'SELECT * FROM proctoring_logs WHERE session_id = ? ORDER BY created_at',
+      'SELECT * FROM ent_proctoring_logs WHERE session_id = ? ORDER BY created_at',
       [req.params.id]
     );
 
@@ -502,7 +502,7 @@ router.post('/admin/session/:id/update', isAdminAuthenticated, async (req, res) 
 // Manage students
 router.get('/admin/students', isAdminAuthenticated, async (req, res) => {
   try {
-    const [students] = await db.query('SELECT * FROM students ORDER BY created_at DESC');
+    const [students] = await db.query('SELECT * FROM ent_students ORDER BY created_at DESC');
     res.render('admin/students', { adminName: req.session.adminName, activePage: 'students', students });
   } catch (err) {
     console.error(err);
@@ -515,9 +515,9 @@ router.get('/admin/students', isAdminAuthenticated, async (req, res) => {
 async function recalcExamTotals(examId) {
   const [totals] = await db.query(`
     SELECT COALESCE(SUM(s.num_questions), 0) as total_q, COALESCE(SUM(s.total_marks), 0) as total_m
-    FROM sections s WHERE s.exam_id = ?
+    FROM ent_sections s WHERE s.exam_id = ?
   `, [examId]);
-  await db.query('UPDATE exams SET total_questions = ?, total_marks = ? WHERE id = ?',
+  await db.query('UPDATE ent_exams SET total_questions = ?, total_marks = ? WHERE id = ?',
     [totals[0].total_q, totals[0].total_m, examId]);
 }
 

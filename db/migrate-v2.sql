@@ -1,7 +1,7 @@
 USE entrance_exam;
 
 -- Degrees / Programs table
-CREATE TABLE IF NOT EXISTS degrees (
+CREATE TABLE IF NOT EXISTS ent_degrees (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(200) NOT NULL,
   code VARCHAR(50) NOT NULL UNIQUE,
@@ -12,8 +12,8 @@ CREATE TABLE IF NOT EXISTS degrees (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Add degree_id and paper configuration fields to exams
-ALTER TABLE exams
+-- Add degree_id and paper configuration fields to ent_exams
+ALTER TABLE ent_exams
   ADD COLUMN IF NOT EXISTS degree_id INT NULL AFTER id,
   ADD COLUMN IF NOT EXISTS exam_code VARCHAR(50) NULL AFTER title,
   ADD COLUMN IF NOT EXISTS total_marks INT DEFAULT 100 AFTER total_questions,
@@ -28,10 +28,10 @@ ALTER TABLE exams
   ADD COLUMN IF NOT EXISTS end_time TIME NULL AFTER start_time;
 
 -- Add foreign key for degree (ignore error if already exists)
--- ALTER TABLE exams ADD FOREIGN KEY (degree_id) REFERENCES degrees(id) ON DELETE SET NULL;
+-- ALTER TABLE ent_exams ADD FOREIGN KEY (degree_id) REFERENCES ent_degrees(id) ON DELETE SET NULL;
 
--- Extend sections with type, marks, question_count configuration
-ALTER TABLE sections
+-- Extend ent_sections with type, marks, question_count configuration
+ALTER TABLE ent_sections
   ADD COLUMN IF NOT EXISTS section_type ENUM('mcq', 'true_false', 'fill_blank', 'descriptive', 'image_based', 'matching') DEFAULT 'mcq' AFTER title,
   ADD COLUMN IF NOT EXISTS description TEXT AFTER section_type,
   ADD COLUMN IF NOT EXISTS num_questions INT DEFAULT 0 AFTER description,
@@ -41,14 +41,14 @@ ALTER TABLE sections
   ADD COLUMN IF NOT EXISTS is_mandatory TINYINT(1) DEFAULT 1 AFTER time_limit_minutes,
   ADD COLUMN IF NOT EXISTS shuffle_questions TINYINT(1) DEFAULT 0 AFTER is_mandatory;
 
--- Add difficulty level and question type to questions
-ALTER TABLE questions
+-- Add difficulty level and question type to ent_questions
+ALTER TABLE ent_questions
   ADD COLUMN IF NOT EXISTS question_type ENUM('mcq', 'true_false', 'fill_blank', 'descriptive', 'image_based', 'matching') DEFAULT 'mcq' AFTER section_id,
   ADD COLUMN IF NOT EXISTS difficulty ENUM('easy', 'medium', 'hard') DEFAULT 'medium' AFTER question_type,
   ADD COLUMN IF NOT EXISTS explanation TEXT AFTER correct_option;
 
 -- Insert sample degrees
-INSERT IGNORE INTO degrees (name, code, description, department, duration_years) VALUES
+INSERT IGNORE INTO ent_degrees (name, code, description, department, duration_years) VALUES
 ('Bachelor of Design', 'B.Des', 'Bachelor of Design - Undergraduate Program', 'School of Design', 4),
 ('Bachelor of Fine Arts', 'BFA', 'Bachelor of Fine Arts - Undergraduate Program', 'School of Arts', 4),
 ('Master of Design', 'M.Des', 'Master of Design - Postgraduate Program', 'School of Design', 2),
@@ -56,9 +56,9 @@ INSERT IGNORE INTO degrees (name, code, description, department, duration_years)
 ('Bachelor of Technology', 'B.Tech', 'Bachelor of Technology - Engineering Program', 'School of Engineering', 4);
 
 -- Update existing exam to link with B.Des degree
-UPDATE exams SET degree_id = 1, exam_code = 'DAT-2024-001', total_marks = 20, passing_marks = 8 WHERE id = 1;
+UPDATE ent_exams SET degree_id = 1, exam_code = 'DAT-2024-001', total_marks = 20, passing_marks = 8 WHERE id = 1;
 
 -- Update existing sections with type info
-UPDATE sections SET section_type = 'mcq', num_questions = 7, marks_per_question = 1, total_marks = 7 WHERE id = 1;
-UPDATE sections SET section_type = 'mcq', num_questions = 7, marks_per_question = 1, total_marks = 7 WHERE id = 2;
-UPDATE sections SET section_type = 'mcq', num_questions = 6, marks_per_question = 1, total_marks = 6 WHERE id = 3;
+UPDATE ent_sections SET section_type = 'mcq', num_questions = 7, marks_per_question = 1, total_marks = 7 WHERE id = 1;
+UPDATE ent_sections SET section_type = 'mcq', num_questions = 7, marks_per_question = 1, total_marks = 7 WHERE id = 2;
+UPDATE ent_sections SET section_type = 'mcq', num_questions = 6, marks_per_question = 1, total_marks = 6 WHERE id = 3;
