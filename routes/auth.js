@@ -15,10 +15,10 @@ router.post('/login', async (req, res) => {
 
     let query, params;
     if (application_id && password) {
-      query = 'SELECT * FROM students WHERE application_id = ?';
+      query = 'SELECT * FROM ent_students WHERE application_id = ?';
       params = [application_id];
     } else if (mobile) {
-      query = 'SELECT * FROM students WHERE mobile = ?';
+      query = 'SELECT * FROM ent_students WHERE mobile = ?';
       params = [mobile];
     } else {
       return res.render('login', { error: 'Please provide valid credentials' });
@@ -63,7 +63,7 @@ router.get('/admin/login', (req, res) => {
 router.post('/admin/login', async (req, res) => {
   try {
     const { username, password } = req.body;
-    const [rows] = await db.query('SELECT * FROM admins WHERE username = ?', [username]);
+    const [rows] = await db.query('SELECT * FROM ent_admins WHERE username = ?', [username]);
 
     if (rows.length === 0) {
       return res.render('admin/login', { error: 'Invalid credentials' });

@@ -18,7 +18,7 @@ const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 // Student dashboard
 router.get('/dashboard', isStudentAuthenticated, async (req, res) => {
   try {
-    const [exams] = await db.query('SELECT * FROM exams WHERE is_active = 1');
+    const [exams] = await db.query('SELECT * FROM ent_exams WHERE is_active = 1');
     const [sessions] = await db.query(
       'SELECT * FROM ent_sessions WHERE student_id = ? ORDER BY created_at DESC',
       [req.session.studentId]
@@ -38,7 +38,7 @@ router.get('/dashboard', isStudentAuthenticated, async (req, res) => {
 // Phase 2: Start exam - System Compatibility Check
 router.get('/exam/:examId/start', isStudentAuthenticated, async (req, res) => {
   try {
-    const [exams] = await db.query('SELECT * FROM exams WHERE id = ? AND is_active = 1', [req.params.examId]);
+    const [exams] = await db.query('SELECT * FROM ent_exams WHERE id = ? AND is_active = 1', [req.params.examId]);
     if (exams.length === 0) return res.redirect('/dashboard');
 
     // Check if student already has an active session
@@ -103,7 +103,7 @@ router.post('/exam/compatibility-done', isStudentAuthenticated, hasActiveSession
 router.get('/exam/av-check', isStudentAuthenticated, hasActiveSession, async (req, res) => {
   try {
     const [sessions] = await db.query(
-      'SELECT es.*, e.title as exam_title FROM ent_sessions es JOIN exams e ON es.exam_id = e.id WHERE es.id = ?',
+      'SELECT es.*, e.title as exam_title FROM ent_sessions es JOIN ent_exams e ON es.exam_id = e.id WHERE es.id = ?',
       [req.session.examSessionId]
     );
     if (sessions.length === 0) return res.redirect('/dashboard');
@@ -139,7 +139,7 @@ router.post('/exam/save-photo', isStudentAuthenticated, hasActiveSession, upload
 router.get('/exam/rules', isStudentAuthenticated, hasActiveSession, async (req, res) => {
   try {
     const [sessions] = await db.query(
-      'SELECT es.*, e.title as exam_title, e.duration_minutes, e.total_questions FROM ent_sessions es JOIN exams e ON es.exam_id = e.id WHERE es.id = ?',
+      'SELECT es.*, e.title as exam_title, e.duration_minutes, e.total_questions FROM ent_sessions es JOIN ent_exams e ON es.exam_id = e.id WHERE es.id = ?',
       [req.session.examSessionId]
     );
     if (sessions.length === 0) return res.redirect('/dashboard');
@@ -157,7 +157,7 @@ router.get('/exam/rules', isStudentAuthenticated, hasActiveSession, async (req, 
 router.post('/exam/accept-rules', isStudentAuthenticated, hasActiveSession, async (req, res) => {
   try {
     const [sessions] = await db.query(
-      'SELECT es.*, e.duration_minutes FROM ent_sessions es JOIN exams e ON es.exam_id = e.id WHERE es.id = ?',
+      'SELECT es.*, e.duration_minutes FROM ent_sessions es JOIN ent_exams e ON es.exam_id = e.id WHERE es.id = ?',
       [req.session.examSessionId]
     );
     if (sessions.length === 0) return res.json({ success: false });
@@ -180,7 +180,7 @@ router.get('/exam/live', isStudentAuthenticated, hasActiveSession, async (req, r
     const [sessions] = await db.query(
       `SELECT es.*, e.title as exam_title, e.duration_minutes, e.total_questions,
               e.max_tab_switches, e.max_violations, e.auto_save_interval
-       FROM ent_sessions es JOIN exams e ON es.exam_id = e.id WHERE es.id = ?`,
+       FROM ent_sessions es JOIN ent_exams e ON es.exam_id = e.id WHERE es.id = ?`,
       [req.session.examSessionId]
     );
     if (sessions.length === 0) return res.redirect('/dashboard');
@@ -192,21 +192,21 @@ router.get('/exam/live', isStudentAuthenticated, hasActiveSession, async (req, r
 
     // Get questions with sections
     const [questions] = await db.query(
-      `SELECT q.*, s.title as section_title FROM questions q
-       LEFT JOIN sections s ON q.section_id = s.id
+      `SELECT q.*, s.title as section_title FROM ent_questions q
+       LEFT JOIN ent_sections s ON q.section_id = s.id
        WHERE q.exam_id = ? ORDER BY q.sort_order`,
       [session.exam_id]
     );
 
     // Get existing responses
     const [responses] = await db.query(
-      'SELECT * FROM responses WHERE session_id = ?',
+      'SELECT * FROM ent_responses WHERE session_id = ?',
       [req.session.examSessionId]
     );
 
     // Get violation counts
     const [violations] = await db.query(
-      `SELECT type, COUNT(*) as count FROM violations
+      `SELECT type, COUNT(*) as count FROM ent_violations
        WHERE session_id = ? GROUP BY type`,
       [req.session.examSessionId]
     );
@@ -240,7 +240,7 @@ router.post('/api/save-answer', isStudentAuthenticated, hasActiveSession, async 
   try {
     const { question_id, selected_option, marked_for_review } = req.body;
     await db.query(
-      `INSERT INTO responses (session_id, question_id, selected_option, marked_for_review)
+      `INSERT INTO ent_responses (session_id, question_id, selected_option, marked_for_review)
        VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE selected_option = VALUES(selected_option),
        marked_for_review = VALUES(marked_for_review), answered_at = NOW()`,
       [req.session.examSessionId, question_id, selected_option || null, marked_for_review ? 1 : 0]
@@ -257,18 +257,18 @@ router.post('/api/log-violation', isStudentAuthenticated, hasActiveSession, asyn
   try {
     const { type, details, severity } = req.body;
     await db.query(
-      'INSERT INTO violations (session_id, type, details, severity) VALUES (?, ?, ?, ?)',
+      'INSERT INTO ent_violations (session_id, type, details, severity) VALUES (?, ?, ?, ?)',
       [req.session.examSessionId, type, details || null, severity || 'medium']
     );
 
     // Check total violations
     const [counts] = await db.query(
-      'SELECT COUNT(*) as total FROM violations WHERE session_id = ?',
+      'SELECT COUNT(*) as total FROM ent_violations WHERE session_id = ?',
       [req.session.examSessionId]
     );
 
     const [sessions] = await db.query(
-      'SELECT e.max_violations FROM ent_sessions es JOIN exams e ON es.exam_id = e.id WHERE es.id = ?',
+      'SELECT e.max_violations FROM ent_sessions es JOIN ent_exams e ON es.exam_id = e.id WHERE es.id = ?',
       [req.session.examSessionId]
     );
 
@@ -287,7 +287,7 @@ router.post('/api/log-event', isStudentAuthenticated, hasActiveSession, async (r
   try {
     const { event_type, event_data } = req.body;
     await db.query(
-      'INSERT INTO proctoring_logs (session_id, event_type, event_data) VALUES (?, ?, ?)',
+      'INSERT INTO ent_proctoring_logs (session_id, event_type, event_data) VALUES (?, ?, ?)',
       [req.session.examSessionId, event_type, JSON.stringify(event_data || {})]
     );
     res.json({ success: true });
@@ -324,8 +324,8 @@ router.post('/exam/submit', isStudentAuthenticated, hasActiveSession, async (req
 
     // Calculate results
     const [responses] = await db.query(
-      `SELECT r.*, q.correct_option, q.marks FROM responses r
-       JOIN questions q ON r.question_id = q.id WHERE r.session_id = ?`,
+      `SELECT r.*, q.correct_option, q.marks FROM ent_responses r
+       JOIN ent_questions q ON r.question_id = q.id WHERE r.session_id = ?`,
       [req.session.examSessionId]
     );
 
@@ -335,7 +335,7 @@ router.post('/exam/submit', isStudentAuthenticated, hasActiveSession, async (req
 
     // Calculate risk score based on violations
     const [violations] = await db.query(
-      'SELECT COUNT(*) as total FROM violations WHERE session_id = ?',
+      'SELECT COUNT(*) as total FROM ent_violations WHERE session_id = ?',
       [req.session.examSessionId]
     );
     const riskScore = Math.min(100, (violations[0].total / 10) * 100);
@@ -363,7 +363,7 @@ router.get('/exam/result/:sessionId', isStudentAuthenticated, async (req, res) =
     const [sessions] = await db.query(
       `SELECT es.*, e.title as exam_title, e.total_questions, er.*
        FROM ent_sessions es
-       JOIN exams e ON es.exam_id = e.id
+       JOIN ent_exams e ON es.exam_id = e.id
        LEFT JOIN ent_results er ON er.session_id = es.id
        WHERE es.id = ? AND es.student_id = ?`,
       [req.params.sessionId, req.session.studentId]
