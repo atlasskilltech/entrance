@@ -10,10 +10,10 @@ router.get('/admin/dashboard', isAdminAuthenticated, async (req, res) => {
     const [stats] = await db.query(`
       SELECT
         (SELECT COUNT(*) FROM students) as total_students,
-        (SELECT COUNT(*) FROM exam_sessions) as total_sessions,
-        (SELECT COUNT(*) FROM exam_sessions WHERE status = 'in_progress') as active_sessions,
-        (SELECT COUNT(*) FROM exam_sessions WHERE status IN ('submitted', 'auto_submitted')) as completed_sessions,
-        (SELECT COUNT(*) FROM exam_results WHERE admin_status = 'flagged') as flagged_sessions,
+        (SELECT COUNT(*) FROM ent_sessions) as total_sessions,
+        (SELECT COUNT(*) FROM ent_sessions WHERE status = 'in_progress') as active_sessions,
+        (SELECT COUNT(*) FROM ent_sessions WHERE status IN ('submitted', 'auto_submitted')) as completed_sessions,
+        (SELECT COUNT(*) FROM ent_results WHERE admin_status = 'flagged') as flagged_sessions,
         (SELECT COUNT(*) FROM degrees) as total_degrees,
         (SELECT COUNT(*) FROM exams) as total_exams,
         (SELECT COUNT(*) FROM questions) as total_questions
@@ -23,10 +23,10 @@ router.get('/admin/dashboard', isAdminAuthenticated, async (req, res) => {
       SELECT es.*, s.name as student_name, s.application_id, e.title as exam_title,
              er.score, er.risk_score, er.confidence_score, er.admin_status,
              (SELECT COUNT(*) FROM violations v WHERE v.session_id = es.id) as violation_count
-      FROM exam_sessions es
+      FROM ent_sessions es
       JOIN students s ON es.student_id = s.id
       JOIN exams e ON es.exam_id = e.id
-      LEFT JOIN exam_results er ON er.session_id = es.id
+      LEFT JOIN ent_results er ON er.session_id = es.id
       ORDER BY es.created_at DESC LIMIT 50
     `);
 
@@ -408,10 +408,10 @@ router.get('/admin/sessions', isAdminAuthenticated, async (req, res) => {
       SELECT es.*, s.name as student_name, s.application_id, e.title as exam_title,
              er.score, er.risk_score, er.confidence_score, er.admin_status,
              (SELECT COUNT(*) FROM violations v WHERE v.session_id = es.id) as violation_count
-      FROM exam_sessions es
+      FROM ent_sessions es
       JOIN students s ON es.student_id = s.id
       JOIN exams e ON es.exam_id = e.id
-      LEFT JOIN exam_results er ON er.session_id = es.id
+      LEFT JOIN ent_results er ON er.session_id = es.id
       ORDER BY es.created_at DESC LIMIT 100
     `);
     res.render('admin/sessions', { adminName: req.session.adminName, activePage: 'sessions', sessions });
@@ -429,10 +429,10 @@ router.get('/admin/session/:id', isAdminAuthenticated, async (req, res) => {
              e.title as exam_title, e.duration_minutes, e.total_questions,
              er.total_answered, er.correct_answers, er.score, er.risk_score,
              er.confidence_score, er.admin_status, er.admin_notes
-      FROM exam_sessions es
+      FROM ent_sessions es
       JOIN students s ON es.student_id = s.id
       JOIN exams e ON es.exam_id = e.id
-      LEFT JOIN exam_results er ON er.session_id = es.id
+      LEFT JOIN ent_results er ON er.session_id = es.id
       WHERE es.id = ?
     `, [req.params.id]);
 
@@ -483,13 +483,13 @@ router.post('/admin/session/:id/update', isAdminAuthenticated, async (req, res) 
   try {
     const { admin_status, admin_notes } = req.body;
     await db.query(
-      `UPDATE exam_results SET admin_status = ?, admin_notes = ?, reviewed_by = ?, reviewed_at = NOW()
+      `UPDATE ent_results SET admin_status = ?, admin_notes = ?, reviewed_by = ?, reviewed_at = NOW()
        WHERE session_id = ?`,
       [admin_status, admin_notes, req.session.adminId, req.params.id]
     );
 
     if (admin_status === 'disqualified') {
-      await db.query('UPDATE exam_sessions SET status = "disqualified" WHERE id = ?', [req.params.id]);
+      await db.query('UPDATE ent_sessions SET status = "disqualified" WHERE id = ?', [req.params.id]);
     }
 
     res.json({ success: true });
