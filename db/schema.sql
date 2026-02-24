@@ -136,7 +136,7 @@ CREATE TABLE IF NOT EXISTS ent_results (
 
 -- Insert default admin
 INSERT INTO ent_admins (username, password, name) VALUES
-('admin', '$2a$10$8K1p/a0dL1LXMYgoLQH05.FGpO4hFkIJYDRwuSp.s8Xy.IGuMnTG', 'Administrator');
+('admin', '$2b$10$kz5STAsnf.fZFrQooYVVpOfxrVEve848YRTQ/XTwtYSmdCX2vz9O.', 'Administrator');
 -- Default password: admin123
 
 -- Insert a sample exam
@@ -174,5 +174,5 @@ INSERT INTO ent_questions (exam_id, section_id, question_text, option_a, option_
 
 -- Insert a sample student
 INSERT INTO ent_students (application_id, name, email, mobile, password) VALUES
-('APP2024001', 'John Doe', 'john@example.com', '9876543210', '$2a$10$8K1p/a0dL1LXMYgoLQH05.FGpO4hFkIJYDRwuSp.s8Xy.IGuMnTG');
+('APP2024001', 'John Doe', 'john@example.com', '9876543210', '$2b$10$kz5STAsnf.fZFrQooYVVpOfxrVEve848YRTQ/XTwtYSmdCX2vz9O.');
 -- Default password: admin123
