@@ -197,6 +197,14 @@ function initFaceDetection() {
   if (window.FaceDetector) {
     faceDetector = new FaceDetector({ fastMode: true, maxDetectedFaces: 5 });
     startFaceDetectionLoop();
+  } else {
+    // FaceDetector API not available - enable button and allow capture
+    faceIsCentered = true;
+    const takeBtn = document.getElementById('takePhotoBtn');
+    takeBtn.disabled = false;
+    takeBtn.className = 'flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition cursor-pointer';
+    document.getElementById('faceGuideText').textContent = 'Position your face in the oval';
+    document.getElementById('photoStatus').textContent = 'Align your face in the oval and take photo';
   }
 }
 
