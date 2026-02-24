@@ -4,9 +4,15 @@
   <%- include('../partials/admin-sidebar') %>
 
   <div class="ml-56 flex-1">
-    <div class="bg-white border-b px-6 py-4">
-      <h1 class="text-xl font-bold text-gray-800">Students</h1>
-      <p class="text-sm text-gray-500">Registered students for entrance examinations</p>
+    <div class="bg-white border-b px-6 py-4 flex items-center justify-between">
+      <div>
+        <h1 class="text-xl font-bold text-gray-800">Students</h1>
+        <p class="text-sm text-gray-500">Manage students for entrance examinations</p>
+      </div>
+      <button onclick="openCreateModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition cursor-pointer flex items-center space-x-1">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        <span>Add Student</span>
+      </button>
     </div>
 
     <div class="p-6">
@@ -19,20 +25,45 @@
                 <th class="px-4 py-3 text-left font-semibold text-gray-600">Name</th>
                 <th class="px-4 py-3 text-left font-semibold text-gray-600">Email</th>
                 <th class="px-4 py-3 text-left font-semibold text-gray-600">Mobile</th>
+                <th class="px-4 py-3 text-left font-semibold text-gray-600">Sessions</th>
                 <th class="px-4 py-3 text-left font-semibold text-gray-600">Registered</th>
+                <th class="px-4 py-3 text-right font-semibold text-gray-600">Actions</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
               <% if (students.length === 0) { %>
-                <tr><td colspan="5" class="px-4 py-8 text-center text-gray-400">No students registered yet</td></tr>
+                <tr>
+                  <td colspan="7" class="px-4 py-12 text-center">
+                    <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    <p class="text-gray-400 mb-3">No students registered yet</p>
+                    <button onclick="openCreateModal()" class="text-indigo-600 text-sm font-medium hover:text-indigo-800 cursor-pointer">Add your first student</button>
+                  </td>
+                </tr>
               <% } %>
               <% students.forEach(s => { %>
-                <tr class="hover:bg-gray-50">
+                <tr class="hover:bg-gray-50 fade-in">
                   <td class="px-4 py-3 font-medium font-mono"><%= s.application_id %></td>
-                  <td class="px-4 py-3"><%= s.name %></td>
+                  <td class="px-4 py-3 font-medium"><%= s.name %></td>
                   <td class="px-4 py-3 text-gray-500"><%= s.email || 'N/A' %></td>
                   <td class="px-4 py-3"><%= s.mobile %></td>
+                  <td class="px-4 py-3">
+                    <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium <%= s.session_count > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500' %>">
+                      <%= s.session_count %>
+                    </span>
+                  </td>
                   <td class="px-4 py-3 text-gray-500"><%= new Date(s.created_at).toLocaleDateString() %></td>
+                  <td class="px-4 py-3 text-right">
+                    <div class="flex items-center justify-end space-x-1">
+                      <button onclick='editStudent(<%- JSON.stringify({id: s.id, application_id: s.application_id, name: s.name, email: s.email, mobile: s.mobile}) %>)' class="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer" title="Edit">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                      </button>
+                      <% if (s.session_count === 0) { %>
+                        <button onclick="deleteStudent(<%= s.id %>, '<%= s.name.replace(/'/g, "\\'") %>')" class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer" title="Delete">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        </button>
+                      <% } %>
+                    </div>
+                  </td>
                 </tr>
               <% }) %>
             </tbody>
@@ -42,5 +73,126 @@
     </div>
   </div>
 </div>
+
+<!-- Create/Edit Modal -->
+<div id="studentModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+  <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6">
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="text-lg font-bold text-gray-800" id="modalTitle">Add New Student</h2>
+      <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 cursor-pointer">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <form id="studentForm" class="space-y-4">
+      <input type="hidden" id="studentId" value="">
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Application ID *</label>
+          <input type="text" id="appId" required placeholder="e.g. APP2024002"
+                 class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+          <input type="text" id="studentName" required placeholder="e.g. Jane Smith"
+                 class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <input type="email" id="studentEmail" placeholder="e.g. jane@example.com"
+                 class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Mobile *</label>
+          <input type="text" id="studentMobile" required placeholder="e.g. 9876543210"
+                 class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-gray-700 mb-1" id="passwordLabel">Password *</label>
+          <input type="password" id="studentPassword" placeholder="Enter password"
+                 class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+          <p class="text-xs text-gray-400 mt-1" id="passwordHint">Password will be securely hashed before storage</p>
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-2 pt-2">
+        <button type="button" onclick="closeModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition cursor-pointer">Cancel</button>
+        <button type="submit" id="saveBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition cursor-pointer">Create Student</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+let editingId = null;
+
+function openCreateModal() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'Add New Student';
+  document.getElementById('saveBtn').textContent = 'Create Student';
+  document.getElementById('passwordLabel').textContent = 'Password *';
+  document.getElementById('passwordHint').textContent = 'Password will be securely hashed before storage';
+  document.getElementById('studentPassword').required = true;
+  document.getElementById('studentForm').reset();
+  document.getElementById('studentModal').classList.remove('hidden');
+}
+
+function editStudent(s) {
+  editingId = s.id;
+  document.getElementById('modalTitle').textContent = 'Edit Student';
+  document.getElementById('saveBtn').textContent = 'Save Changes';
+  document.getElementById('passwordLabel').textContent = 'New Password';
+  document.getElementById('passwordHint').textContent = 'Leave blank to keep current password';
+  document.getElementById('studentPassword').required = false;
+  document.getElementById('appId').value = s.application_id;
+  document.getElementById('studentName').value = s.name;
+  document.getElementById('studentEmail').value = s.email || '';
+  document.getElementById('studentMobile').value = s.mobile;
+  document.getElementById('studentPassword').value = '';
+  document.getElementById('studentModal').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('studentModal').classList.add('hidden');
+}
+
+document.getElementById('studentForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = {
+    application_id: document.getElementById('appId').value,
+    name: document.getElementById('studentName').value,
+    email: document.getElementById('studentEmail').value,
+    mobile: document.getElementById('studentMobile').value,
+    password: document.getElementById('studentPassword').value
+  };
+
+  if (!editingId && !data.password) {
+    alert('Password is required for new students');
+    return;
+  }
+
+  const url = editingId ? `/admin/students/${editingId}/update` : '/admin/students/create';
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  const result = await res.json();
+  if (result.success) {
+    window.location.reload();
+  } else {
+    alert(result.error || 'Operation failed');
+  }
+});
+
+async function deleteStudent(id, name) {
+  if (!confirm(`Delete student "${name}"? This cannot be undone.`)) return;
+  const res = await fetch(`/admin/students/${id}/delete`, { method: 'POST' });
+  const data = await res.json();
+  if (data.success) window.location.reload();
+  else alert(data.error || 'Failed to delete');
+}
+</script>
 
 <%- include('../partials/footer') %>

@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcryptjs');
 const db = require('../config/database');
 const { isAdminAuthenticated } = require('../middleware/auth');
 
@@ -499,14 +500,68 @@ router.post('/admin/session/:id/update', isAdminAuthenticated, async (req, res) 
   }
 });
 
-// Manage students
+// ==================== STUDENTS ====================
+
 router.get('/admin/students', isAdminAuthenticated, async (req, res) => {
   try {
-    const [students] = await db.query('SELECT * FROM ent_students ORDER BY created_at DESC');
+    const [students] = await db.query(`
+      SELECT s.*, (SELECT COUNT(*) FROM ent_sessions es WHERE es.student_id = s.id) as session_count
+      FROM ent_students s ORDER BY s.created_at DESC
+    `);
     res.render('admin/students', { adminName: req.session.adminName, activePage: 'students', students });
   } catch (err) {
     console.error(err);
     res.redirect('/admin/dashboard');
+  }
+});
+
+router.post('/admin/students/create', isAdminAuthenticated, async (req, res) => {
+  try {
+    const { application_id, name, email, mobile, password } = req.body;
+    if (!application_id || !name || !mobile || !password) {
+      return res.json({ success: false, error: 'Application ID, name, mobile, and password are required' });
+    }
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await db.query(
+      'INSERT INTO ent_students (application_id, name, email, mobile, password) VALUES (?, ?, ?, ?, ?)',
+      [application_id, name, email || null, mobile, hashedPassword]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, error: err.code === 'ER_DUP_ENTRY' ? 'Application ID already exists' : 'Failed to create student' });
+  }
+});
+
+router.post('/admin/students/:id/update', isAdminAuthenticated, async (req, res) => {
+  try {
+    const { application_id, name, email, mobile, password } = req.body;
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      await db.query(
+        'UPDATE ent_students SET application_id=?, name=?, email=?, mobile=?, password=? WHERE id=?',
+        [application_id, name, email || null, mobile, hashedPassword, req.params.id]
+      );
+    } else {
+      await db.query(
+        'UPDATE ent_students SET application_id=?, name=?, email=?, mobile=? WHERE id=?',
+        [application_id, name, email || null, mobile, req.params.id]
+      );
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, error: err.code === 'ER_DUP_ENTRY' ? 'Application ID already exists' : 'Failed to update student' });
+  }
+});
+
+router.post('/admin/students/:id/delete', isAdminAuthenticated, async (req, res) => {
+  try {
+    await db.query('DELETE FROM ent_students WHERE id = ?', [req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, error: 'Cannot delete student with active exam sessions' });
   }
 });
 
