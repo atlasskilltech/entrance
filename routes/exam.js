@@ -35,7 +35,7 @@ router.get('/dashboard', isStudentAuthenticated, async (req, res) => {
   }
 });
 
-// Phase 2: Start exam - Bypass system compatibility check, go directly to A/V Check
+// Phase 2: Start exam - Go to A/V Verification
 router.get('/exam/:examId/start', isStudentAuthenticated, async (req, res) => {
   try {
     const [exams] = await db.query('SELECT * FROM ent_exams WHERE id = ? AND is_active = 1', [req.params.examId]);
@@ -58,9 +58,7 @@ router.get('/exam/:examId/start', isStudentAuthenticated, async (req, res) => {
         return res.redirect('/exam/live');
       }
       if (session.status === 'av_verification') {
-        // A/V check bypassed - advance to rules
-        await db.query('UPDATE ent_sessions SET status = "rules" WHERE id = ?', [sessionId]);
-        return res.redirect('/exam/rules');
+        return res.redirect('/exam/av-check');
       }
       if (session.status === 'rules') {
         return res.redirect('/exam/rules');
@@ -75,13 +73,13 @@ router.get('/exam/:examId/start', isStudentAuthenticated, async (req, res) => {
       req.session.examSessionId = sessionId;
     }
 
-    // Bypass compatibility check & A/V verification - skip directly to rules
+    // Set status to A/V verification and redirect to A/V check
     const browserInfo = req.headers['user-agent'] ? req.headers['user-agent'].substring(0, 200) : '';
     await db.query(
-      'UPDATE ent_sessions SET status = "rules", browser_info = ? WHERE id = ?',
+      'UPDATE ent_sessions SET status = "av_verification", browser_info = ? WHERE id = ?',
       [browserInfo, sessionId]
     );
-    res.redirect('/exam/rules');
+    res.redirect('/exam/av-check');
   } catch (err) {
     console.error('Start exam error:', err);
     res.redirect('/dashboard');
