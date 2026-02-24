@@ -33,7 +33,7 @@
       <div class="flex justify-between">
         <span class="text-gray-600">Integrity Score</span>
         <span class="font-semibold <%= session.confidence_score >= 80 ? 'text-green-600' : session.confidence_score >= 50 ? 'text-yellow-600' : 'text-red-600' %>">
-          <%= session.confidence_score ? session.confidence_score.toFixed(0) : 100 %>%
+          <%= session.confidence_score ? Number(session.confidence_score).toFixed(0) : 100 %>%
         </span>
       </div>
     </div>

@@ -77,7 +77,7 @@
             <div>
               <div class="flex justify-between text-xs mb-1">
                 <span>Confidence Score</span>
-                <span class="text-indigo-600"><%= session.confidence_score ? session.confidence_score.toFixed(1) : 100 %>%</span>
+                <span class="text-indigo-600"><%= session.confidence_score ? Number(session.confidence_score).toFixed(1) : 100 %>%</span>
               </div>
               <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div class="h-full bg-indigo-500 rounded-full" style="width: <%= session.confidence_score || 100 %>%"></div>
