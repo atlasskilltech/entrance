@@ -678,41 +678,85 @@ function isSkinPixel(r, g, b) {
   return y > 60 && cb > 77 && cb < 127 && cr > 133 && cr < 173;
 }
 
-// Analyze canvas for face presence using skin tone detection
+// Analyze canvas for face presence AND count faces using skin region clustering
 function detectSkinInFrame(canvas) {
   const ctx = canvas.getContext('2d');
   const w = canvas.width;
   const h = canvas.height;
-  if (w === 0 || h === 0) return { hasFace: false, skinRatio: 0 };
+  if (w === 0 || h === 0) return { hasFace: false, faceCount: 0, skinRatio: 0 };
 
   const imageData = ctx.getImageData(0, 0, w, h);
   const data = imageData.data;
 
-  // Check center region of frame where face should be
-  const centerX = w / 2;
-  const centerY = h * 0.45;
-  const regionW = w * 0.5;
-  const regionH = h * 0.7;
-
-  let skinPixels = 0;
+  const step = 4;
+  let totalSkin = 0;
   let totalPixels = 0;
 
-  const step = 4;
-  const startY = Math.max(0, Math.floor(centerY - regionH / 2));
-  const endY = Math.min(h, Math.floor(centerY + regionH / 2));
-  const startX = Math.max(0, Math.floor(centerX - regionW / 2));
-  const endX = Math.min(w, Math.floor(centerX + regionW / 2));
+  // Divide frame into grid columns for horizontal skin distribution
+  const numCols = 40;
+  const colSkin = new Array(numCols).fill(0);
+  const colTotal = new Array(numCols).fill(0);
 
-  for (let py = startY; py < endY; py += step) {
-    for (let px = startX; px < endX; px += step) {
+  for (let py = 0; py < h; py += step) {
+    for (let px = 0; px < w; px += step) {
       const idx = (py * w + px) * 4;
+      const colIdx = Math.min(numCols - 1, Math.floor(px / w * numCols));
+      colTotal[colIdx]++;
       totalPixels++;
-      if (isSkinPixel(data[idx], data[idx + 1], data[idx + 2])) skinPixels++;
+      if (isSkinPixel(data[idx], data[idx + 1], data[idx + 2])) {
+        colSkin[colIdx]++;
+        totalSkin++;
+      }
     }
   }
 
-  const skinRatio = totalPixels > 0 ? skinPixels / totalPixels : 0;
-  return { hasFace: skinRatio >= 0.12, skinRatio };
+  const skinRatio = totalPixels > 0 ? totalSkin / totalPixels : 0;
+  const hasFace = skinRatio >= 0.08;
+
+  // Build per-column skin ratio and smooth it
+  const colRatios = colSkin.map((s, i) => colTotal[i] > 0 ? s / colTotal[i] : 0);
+  const smoothed = colRatios.map((v, i) => {
+    let sum = v, count = 1;
+    if (i > 0) { sum += colRatios[i - 1]; count++; }
+    if (i < numCols - 1) { sum += colRatios[i + 1]; count++; }
+    return sum / count;
+  });
+
+  // Find contiguous skin regions (blobs) above threshold
+  const threshold = 0.12;
+  const minRegionWidth = 3; // region must span at least 3 columns (~7.5% of frame)
+  const faceRegions = [];
+  let inRegion = false;
+  let regionStart = 0;
+  let regionPeak = 0;
+
+  for (let i = 0; i < numCols; i++) {
+    if (smoothed[i] >= threshold) {
+      if (!inRegion) {
+        inRegion = true;
+        regionStart = i;
+        regionPeak = smoothed[i];
+      } else {
+        regionPeak = Math.max(regionPeak, smoothed[i]);
+      }
+    } else {
+      if (inRegion) {
+        const regionWidth = i - regionStart;
+        if (regionWidth >= minRegionWidth && regionPeak >= 0.15) {
+          faceRegions.push({ start: regionStart, end: i, width: regionWidth });
+        }
+        inRegion = false;
+      }
+    }
+  }
+  if (inRegion) {
+    const regionWidth = numCols - regionStart;
+    if (regionWidth >= minRegionWidth && regionPeak >= 0.15) {
+      faceRegions.push({ start: regionStart, end: numCols, width: regionWidth });
+    }
+  }
+
+  return { hasFace, faceCount: faceRegions.length, skinRatio };
 }
 
 // Run face check on current video frame
@@ -749,10 +793,12 @@ async function checkFaceInFrame() {
     }
   }
 
-  // Fallback: skin tone detection
+  // Fallback: skin tone detection with multi-face clustering
   const result = detectSkinInFrame(canvas);
   if (!result.hasFace) {
     showFaceWarning('no_face', 'NO FACE DETECTED!\nPlease stay visible in the camera.');
+  } else if (result.faceCount > 1) {
+    showFaceWarning('multiple_faces', 'MULTIPLE FACES DETECTED!\nOnly the exam taker should be visible.');
   } else {
     clearFaceWarning();
   }

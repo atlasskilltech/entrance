@@ -496,7 +496,7 @@ function detectFaceInCanvas(canvas) {
   let totalPixels = 0;
   let rSum = 0, gSum = 0, bSum = 0;
 
-  const step = 3; // sample every 3rd pixel for speed
+  const step = 3;
   for (let py = Math.max(0, Math.floor(centerY - radiusY)); py < Math.min(h, Math.floor(centerY + radiusY)); py += step) {
     for (let px = Math.max(0, Math.floor(centerX - radiusX)); px < Math.min(w, Math.floor(centerX + radiusX)); px += step) {
       const dx = (px - centerX) / radiusX;
@@ -507,14 +507,13 @@ function detectFaceInCanvas(canvas) {
       const r = data[idx], g = data[idx + 1], b = data[idx + 2];
       totalPixels++;
       rSum += r; gSum += g; bSum += b;
-
       if (isSkinPixel(r, g, b)) skinPixels++;
     }
   }
 
   const skinRatio = totalPixels > 0 ? skinPixels / totalPixels : 0;
 
-  // Also check color variance (a wall/ceiling is uniform, a face has variation)
+  // Check color variance (a wall/ceiling is uniform, a face has variation)
   const avgR = rSum / totalPixels, avgG = gSum / totalPixels, avgB = bSum / totalPixels;
   let variance = 0;
   for (let py = Math.max(0, Math.floor(centerY - radiusY)); py < Math.min(h, Math.floor(centerY + radiusY)); py += step * 2) {
@@ -528,9 +527,59 @@ function detectFaceInCanvas(canvas) {
   }
   variance = Math.sqrt(variance / totalPixels);
 
-  // Need at least 15% skin pixels AND enough color variation (not a blank surface)
   const hasFace = skinRatio >= 0.15 && variance > 25;
   return { hasFace, skinRatio: Math.round(skinRatio * 100), variance: Math.round(variance) };
+}
+
+// Count separate face regions across the full frame using column-based skin clustering
+function countFacesInCanvas(canvas) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+  if (w === 0 || h === 0) return 0;
+
+  const imageData = ctx.getImageData(0, 0, w, h);
+  const data = imageData.data;
+  const step = 4;
+  const numCols = 40;
+  const colSkin = new Array(numCols).fill(0);
+  const colTotal = new Array(numCols).fill(0);
+
+  for (let py = 0; py < h; py += step) {
+    for (let px = 0; px < w; px += step) {
+      const idx = (py * w + px) * 4;
+      const colIdx = Math.min(numCols - 1, Math.floor(px / w * numCols));
+      colTotal[colIdx]++;
+      if (isSkinPixel(data[idx], data[idx + 1], data[idx + 2])) colSkin[colIdx]++;
+    }
+  }
+
+  const colRatios = colSkin.map((s, i) => colTotal[i] > 0 ? s / colTotal[i] : 0);
+  const smoothed = colRatios.map((v, i) => {
+    let sum = v, count = 1;
+    if (i > 0) { sum += colRatios[i - 1]; count++; }
+    if (i < numCols - 1) { sum += colRatios[i + 1]; count++; }
+    return sum / count;
+  });
+
+  const threshold = 0.12;
+  const faceRegions = [];
+  let inRegion = false, regionStart = 0, regionPeak = 0;
+
+  for (let i = 0; i < numCols; i++) {
+    if (smoothed[i] >= threshold) {
+      if (!inRegion) { inRegion = true; regionStart = i; regionPeak = smoothed[i]; }
+      else { regionPeak = Math.max(regionPeak, smoothed[i]); }
+    } else if (inRegion) {
+      if ((i - regionStart) >= 3 && regionPeak >= 0.15) faceRegions.push({ start: regionStart, end: i });
+      inRegion = false;
+    }
+  }
+  if (inRegion && (numCols - regionStart) >= 3 && regionPeak >= 0.15) {
+    faceRegions.push({ start: regionStart, end: numCols });
+  }
+
+  return faceRegions.length;
 }
 
 // ==================== PHOTO CAPTURE ====================
@@ -565,6 +614,14 @@ async function takePhoto() {
   const faceCheck = detectFaceInCanvas(canvas);
   if (!faceCheck.hasFace) {
     document.getElementById('photoStatus').textContent = 'No face detected. Please position your face clearly in the oval and try again.';
+    document.getElementById('photoStatus').className = 'mt-2 text-sm text-center text-red-500 font-medium';
+    return;
+  }
+
+  // Check for multiple faces using full-frame skin clustering
+  const faceCount = countFacesInCanvas(canvas);
+  if (faceCount > 1) {
+    document.getElementById('photoStatus').textContent = 'Multiple faces detected. Only one person should be in the camera.';
     document.getElementById('photoStatus').className = 'mt-2 text-sm text-center text-red-500 font-medium';
     return;
   }
