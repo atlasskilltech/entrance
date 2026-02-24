@@ -156,7 +156,39 @@
           <h3 class="font-bold text-gray-800 mb-3">Student Responses</h3>
           <div class="space-y-2 max-h-[600px] overflow-y-auto">
             <% responses.forEach((r, i) => { %>
-              <% if (r.question_type === 'descriptive') { %>
+              <% if (r.question_type === 'file_upload') { %>
+                <!-- File Upload Response -->
+                <div class="p-3 rounded-lg text-sm border bg-purple-50 border-purple-200">
+                  <div class="flex justify-between items-center">
+                    <span class="font-medium text-gray-700">Q<%= i + 1 %></span>
+                    <span class="inline-flex px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700">File Upload</span>
+                  </div>
+                  <p class="text-xs text-gray-500 mt-0.5 mb-2"><%= r.question_text %></p>
+                  <% if (r.uploaded_file_url) { %>
+                    <a href="<%= r.uploaded_file_url %>" target="_blank" class="inline-flex items-center space-x-1 px-2 py-1 bg-white border border-purple-300 rounded text-xs text-purple-700 hover:bg-purple-100 transition">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                      <span>View Uploaded File</span>
+                    </a>
+                  <% } else { %>
+                    <p class="text-xs text-gray-400 italic">No file uploaded</p>
+                  <% } %>
+                </div>
+              <% } else if (r.question_type === 'summary_writing') { %>
+                <!-- Summary Writing Response -->
+                <div class="p-3 rounded-lg text-sm border bg-indigo-50 border-indigo-200">
+                  <div class="flex justify-between items-center">
+                    <span class="font-medium text-gray-700">Q<%= i + 1 %></span>
+                    <span class="inline-flex px-1.5 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700">Summary Writing</span>
+                  </div>
+                  <p class="text-xs text-gray-500 mt-0.5 mb-2"><%= r.question_text %></p>
+                  <% if (r.answer_text) { %>
+                    <div class="bg-white rounded-lg p-2 border text-xs text-gray-700 whitespace-pre-wrap max-h-40 overflow-y-auto"><%= r.answer_text %></div>
+                    <p class="text-xs text-gray-400 mt-1"><%= r.answer_text.trim().split(/\s+/).length %> words</p>
+                  <% } else { %>
+                    <p class="text-xs text-gray-400 italic">No summary provided</p>
+                  <% } %>
+                </div>
+              <% } else if (r.question_type === 'descriptive') { %>
                 <!-- Descriptive / Long Answer -->
                 <div class="p-3 rounded-lg text-sm border bg-blue-50 border-blue-200">
                   <div class="flex justify-between items-center">

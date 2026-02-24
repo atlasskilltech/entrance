@@ -42,6 +42,8 @@
                 <option value="image_based" <%= question && question.question_type === 'image_based' ? 'selected' : '' %>>Image Based</option>
                 <option value="descriptive" <%= question && question.question_type === 'descriptive' ? 'selected' : '' %>>Descriptive</option>
                 <option value="matching" <%= question && question.question_type === 'matching' ? 'selected' : '' %>>Matching</option>
+                <option value="file_upload" <%= question && question.question_type === 'file_upload' ? 'selected' : '' %>>File Upload (Portfolio)</option>
+                <option value="summary_writing" <%= question && question.question_type === 'summary_writing' ? 'selected' : '' %>>Summary Writing</option>
               </select>
             </div>
             <div>
@@ -126,6 +128,42 @@
             </div>
           </div>
 
+          <!-- File Upload Settings (for file_upload type) -->
+          <div id="fileUploadBlock" style="display:none">
+            <label class="block text-sm font-medium text-gray-700 mb-2">File Upload Settings</label>
+            <div class="grid grid-cols-2 gap-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Allowed File Types</label>
+                <input type="text" id="qAllowedFileTypes" placeholder="pdf,jpg,jpeg,png"
+                       value="<%= question ? (question.allowed_file_types || 'pdf,jpg,jpeg,png') : 'pdf,jpg,jpeg,png' %>"
+                       class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                <p class="text-xs text-gray-400 mt-1">Comma-separated extensions</p>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Max File Size (MB)</label>
+                <input type="number" id="qMaxFileSize" value="<%= question ? (question.max_file_size_mb || 10) : 10 %>" min="1" max="50"
+                       class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+              </div>
+            </div>
+          </div>
+
+          <!-- Summary Writing Settings (for summary_writing type) -->
+          <div id="summaryWritingBlock" style="display:none">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Summary Writing Settings</label>
+            <div class="grid grid-cols-2 gap-4 bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Minimum Word Count (0 = no limit)</label>
+                <input type="number" id="qMinWordCount" value="<%= question ? (question.min_word_count || 0) : 0 %>" min="0"
+                       class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Maximum Word Count (0 = no limit)</label>
+                <input type="number" id="qMaxWordCount" value="<%= question ? (question.max_word_count || 0) : 0 %>" min="0"
+                       class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+              </div>
+            </div>
+          </div>
+
           <!-- Explanation & Marks -->
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -191,6 +229,10 @@ function buildFormData() {
     fd.append('sort_order', parseInt(document.getElementById('qOrder').value) || 0);
   }
   fd.append('remove_image', document.getElementById('removeImageFlag').value);
+  fd.append('allowed_file_types', document.getElementById('qAllowedFileTypes').value);
+  fd.append('max_file_size_mb', parseInt(document.getElementById('qMaxFileSize').value) || 10);
+  fd.append('min_word_count', parseInt(document.getElementById('qMinWordCount').value) || 0);
+  fd.append('max_word_count', parseInt(document.getElementById('qMaxWordCount').value) || 0);
 
   const imageFile = document.getElementById('qImage').files[0];
   if (imageFile) {
@@ -262,12 +304,24 @@ function removeImage() {
   if (block) block.remove();
 }
 
-// Toggle options block for non-MCQ types
+// Toggle options block and type-specific fields
 function toggleOptionsBlock() {
   const qType = document.getElementById('qType').value;
   const optBlock = document.getElementById('optionsBlock');
-  if (qType === 'descriptive') {
-    optBlock.style.display = 'none';
+  const fileBlock = document.getElementById('fileUploadBlock');
+  const summaryBlock = document.getElementById('summaryWritingBlock');
+
+  // Hide all type-specific blocks first
+  optBlock.style.display = 'none';
+  fileBlock.style.display = 'none';
+  summaryBlock.style.display = 'none';
+
+  if (qType === 'file_upload') {
+    fileBlock.style.display = 'block';
+  } else if (qType === 'summary_writing') {
+    summaryBlock.style.display = 'block';
+  } else if (qType === 'descriptive') {
+    // No options block needed
   } else {
     optBlock.style.display = 'block';
     optBlock.style.opacity = '1';

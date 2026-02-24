@@ -15,6 +15,25 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
+// Multer setup for student file upload responses (portfolio, etc.)
+const responseStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, 'public/uploads/responses/'),
+  filename: (req, file, cb) => {
+    const uniqueName = `resp_${req.session.studentId}_${Date.now()}${path.extname(file.originalname)}`;
+    cb(null, uniqueName);
+  }
+});
+const responseUpload = multer({
+  storage: responseStorage,
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = /pdf|jpg|jpeg|png|gif|webp|doc|docx|ppt|pptx|zip/;
+    const ext = allowed.test(path.extname(file.originalname).toLowerCase().replace('.', ''));
+    if (ext) cb(null, true);
+    else cb(new Error('File type not allowed'));
+  }
+});
+
 // Student dashboard
 router.get('/dashboard', isStudentAuthenticated, async (req, res) => {
   try {
@@ -269,6 +288,29 @@ router.post('/api/save-answer', isStudentAuthenticated, hasActiveSession, async 
   }
 });
 
+// API: Upload file response (for file_upload question type)
+router.post('/api/upload-response', isStudentAuthenticated, hasActiveSession, responseUpload.single('response_file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.json({ success: false, error: 'No file uploaded' });
+    }
+    const { question_id } = req.body;
+    if (!question_id) {
+      return res.json({ success: false, error: 'Missing question_id' });
+    }
+    const fileUrl = `/uploads/responses/${req.file.filename}`;
+    await db.query(
+      `INSERT INTO ent_responses (session_id, question_id, uploaded_file_url)
+       VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE uploaded_file_url = VALUES(uploaded_file_url), answered_at = NOW()`,
+      [req.session.examSessionId, question_id, fileUrl]
+    );
+    res.json({ success: true, fileUrl, fileName: req.file.originalname });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, error: 'Upload failed' });
+  }
+});
+
 // API: Log violation
 router.post('/api/log-violation', isStudentAuthenticated, hasActiveSession, async (req, res) => {
   try {
@@ -341,15 +383,16 @@ router.post('/exam/submit', isStudentAuthenticated, hasActiveSession, async (req
 
     // Calculate results
     const [responses] = await db.query(
-      `SELECT r.*, q.question_type, q.correct_option, q.marks FROM ent_responses r
+      `SELECT r.*, q.question_type, q.correct_option, q.marks, r.uploaded_file_url FROM ent_responses r
        JOIN ent_questions q ON r.question_id = q.id WHERE r.session_id = ?`,
       [req.session.examSessionId]
     );
 
-    const totalAnswered = responses.filter(r => r.selected_option || (r.answer_text && r.answer_text.trim().length > 0)).length;
-    const correctAnswers = responses.filter(r => r.question_type !== 'descriptive' && r.selected_option === r.correct_option).length;
+    const manualGradeTypes = ['descriptive', 'file_upload', 'summary_writing'];
+    const totalAnswered = responses.filter(r => r.selected_option || (r.answer_text && r.answer_text.trim().length > 0) || r.uploaded_file_url).length;
+    const correctAnswers = responses.filter(r => !manualGradeTypes.includes(r.question_type) && r.selected_option === r.correct_option).length;
     const score = responses.reduce((sum, r) => {
-      if (r.question_type === 'descriptive') return sum; // descriptive questions need manual grading
+      if (manualGradeTypes.includes(r.question_type)) return sum; // manual grading needed
       return sum + (r.selected_option === r.correct_option ? r.marks : 0);
     }, 0);
 
