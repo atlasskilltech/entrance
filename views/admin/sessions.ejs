@@ -57,7 +57,7 @@
                         <div class="w-12 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                           <div class="h-full rounded-full <%= s.risk_score >= 70 ? 'bg-red-500' : s.risk_score >= 40 ? 'bg-amber-500' : 'bg-green-500' %>" style="width: <%= s.risk_score %>%"></div>
                         </div>
-                        <span class="text-xs"><%= s.risk_score ? s.risk_score.toFixed(0) : 0 %>%</span>
+                        <span class="text-xs"><%= s.risk_score ? Number(s.risk_score).toFixed(0) : 0 %>%</span>
                       </div>
                     <% } else { %>-<% } %>
                   </td>
