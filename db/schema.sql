@@ -88,6 +88,7 @@ CREATE TABLE IF NOT EXISTS ent_responses (
   session_id INT NOT NULL,
   question_id INT NOT NULL,
   selected_option CHAR(1),
+  answer_text TEXT,
   marked_for_review TINYINT(1) DEFAULT 0,
   answered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (session_id) REFERENCES ent_sessions(id) ON DELETE CASCADE,

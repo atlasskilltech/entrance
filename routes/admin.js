@@ -1,8 +1,30 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
+const multer = require('multer');
+const path = require('path');
 const db = require('../config/database');
 const { isAdminAuthenticated } = require('../middleware/auth');
+
+// Multer setup for question image uploads
+const questionStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, 'public/uploads/questions/'),
+  filename: (req, file, cb) => {
+    const uniqueName = `q_${Date.now()}${path.extname(file.originalname)}`;
+    cb(null, uniqueName);
+  }
+});
+const questionUpload = multer({
+  storage: questionStorage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = /jpeg|jpg|png|gif|webp|svg/;
+    const ext = allowed.test(path.extname(file.originalname).toLowerCase());
+    const mime = allowed.test(file.mimetype.split('/')[1]);
+    if (ext || mime) cb(null, true);
+    else cb(new Error('Only image files are allowed'));
+  }
+});
 
 // ==================== DASHBOARD ====================
 
@@ -339,7 +361,7 @@ router.get('/admin/questions/:id/edit', isAdminAuthenticated, async (req, res) =
   }
 });
 
-router.post('/admin/exams/:examId/questions/create', isAdminAuthenticated, async (req, res) => {
+router.post('/admin/exams/:examId/questions/create', isAdminAuthenticated, questionUpload.single('question_image'), async (req, res) => {
   try {
     const {
       section_id, question_type, difficulty, question_text,
@@ -347,14 +369,15 @@ router.post('/admin/exams/:examId/questions/create', isAdminAuthenticated, async
       explanation, marks
     } = req.body;
 
+    const questionImage = req.file ? `/uploads/questions/${req.file.filename}` : null;
     const [maxOrder] = await db.query('SELECT COALESCE(MAX(sort_order), 0) + 1 as next_order FROM ent_questions WHERE exam_id = ?', [req.params.examId]);
 
     await db.query(
       `INSERT INTO ent_questions (exam_id, section_id, question_type, difficulty, question_text,
-        option_a, option_b, option_c, option_d, correct_option, explanation, marks, sort_order)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        question_image, option_a, option_b, option_c, option_d, correct_option, explanation, marks, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [req.params.examId, section_id || null, question_type || 'mcq', difficulty || 'medium',
-       question_text, option_a || null, option_b || null, option_c || null, option_d || null,
+       question_text, questionImage, option_a || null, option_b || null, option_c || null, option_d || null,
        correct_option || null, explanation || null, marks || 1, maxOrder[0].next_order]
     );
 
@@ -366,22 +389,40 @@ router.post('/admin/exams/:examId/questions/create', isAdminAuthenticated, async
   }
 });
 
-router.post('/admin/questions/:id/update', isAdminAuthenticated, async (req, res) => {
+router.post('/admin/questions/:id/update', isAdminAuthenticated, questionUpload.single('question_image'), async (req, res) => {
   try {
     const {
       section_id, question_type, difficulty, question_text,
       option_a, option_b, option_c, option_d, correct_option,
-      explanation, marks, sort_order
+      explanation, marks, sort_order, remove_image
     } = req.body;
 
-    await db.query(
-      `UPDATE ent_questions SET section_id=?, question_type=?, difficulty=?, question_text=?,
-        option_a=?, option_b=?, option_c=?, option_d=?, correct_option=?,
-        explanation=?, marks=?, sort_order=? WHERE id=?`,
-      [section_id || null, question_type || 'mcq', difficulty || 'medium',
-       question_text, option_a || null, option_b || null, option_c || null, option_d || null,
-       correct_option || null, explanation || null, marks || 1, sort_order || 0, req.params.id]
-    );
+    let questionImage;
+    if (req.file) {
+      questionImage = `/uploads/questions/${req.file.filename}`;
+    } else if (remove_image === '1') {
+      questionImage = null;
+    }
+
+    if (questionImage !== undefined) {
+      await db.query(
+        `UPDATE ent_questions SET section_id=?, question_type=?, difficulty=?, question_text=?,
+          question_image=?, option_a=?, option_b=?, option_c=?, option_d=?, correct_option=?,
+          explanation=?, marks=?, sort_order=? WHERE id=?`,
+        [section_id || null, question_type || 'mcq', difficulty || 'medium',
+         question_text, questionImage, option_a || null, option_b || null, option_c || null, option_d || null,
+         correct_option || null, explanation || null, marks || 1, sort_order || 0, req.params.id]
+      );
+    } else {
+      await db.query(
+        `UPDATE ent_questions SET section_id=?, question_type=?, difficulty=?, question_text=?,
+          option_a=?, option_b=?, option_c=?, option_d=?, correct_option=?,
+          explanation=?, marks=?, sort_order=? WHERE id=?`,
+        [section_id || null, question_type || 'mcq', difficulty || 'medium',
+         question_text, option_a || null, option_b || null, option_c || null, option_d || null,
+         correct_option || null, explanation || null, marks || 1, sort_order || 0, req.params.id]
+      );
+    }
     res.json({ success: true });
   } catch (err) {
     console.error(err);
@@ -450,7 +491,7 @@ router.get('/admin/session/:id', isAdminAuthenticated, async (req, res) => {
     );
 
     const [responses] = await db.query(`
-      SELECT r.*, q.question_text, q.correct_option, q.marks,
+      SELECT r.*, q.question_text, q.question_type, q.correct_option, q.marks,
              s.title as section_title
       FROM ent_responses r
       JOIN ent_questions q ON r.question_id = q.id

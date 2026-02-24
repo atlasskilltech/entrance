@@ -14,6 +14,15 @@ async function initDatabase() {
 
   const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
   await connection.query(schema);
+
+  // Migrations: add columns if they don't exist
+  const migrations = [
+    `ALTER TABLE entrance_exam.ent_responses ADD COLUMN IF NOT EXISTS answer_text TEXT AFTER selected_option`
+  ];
+  for (const sql of migrations) {
+    try { await connection.query(sql); } catch (e) { /* column may already exist */ }
+  }
+
   console.log('Database initialized successfully');
   await connection.end();
 }
