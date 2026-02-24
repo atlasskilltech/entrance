@@ -158,12 +158,22 @@ function checkSpeechMatch(spoken) {
   const expectedWords = expectedNorm.split(' ');
   const spokenWords = spokenNorm.split(' ');
 
+  // Required words that MUST be present: student name words, "ready", "test"
+  const studentName = normalize('<%= studentName %>');
+  const nameWords = studentName.split(' ');
+  const requiredWords = [...nameWords, 'ready', 'test'];
+  const missingRequired = requiredWords.filter(w => !spokenWords.includes(w));
+  if (missingRequired.length > 0) {
+    return { score: 0, passed: false, missing: missingRequired };
+  }
+
   // Count how many expected words appear in spoken text
   let matched = 0;
   for (const word of expectedWords) {
     if (spokenWords.includes(word)) matched++;
   }
-  return matched / expectedWords.length;
+  const score = matched / expectedWords.length;
+  return { score, passed: score >= 0.7, missing: [] };
 }
 
 // Initialize webcam
@@ -426,21 +436,25 @@ function validateSpeech() {
     return;
   }
 
-  const matchScore = checkSpeechMatch(fullTranscript);
-  const matchPercent = Math.round(matchScore * 100);
+  const result = checkSpeechMatch(fullTranscript);
+  const matchPercent = Math.round(result.score * 100);
 
-  if (matchScore >= 0.6) {
-    // Good match
+  if (result.passed) {
+    // Good match with all required words present
     micDone = true;
     matchBox.className = 'rounded-lg p-3 mb-3 text-sm font-medium text-center bg-green-50 border border-green-200 text-green-700';
     matchBox.innerHTML = `Speech verified (${matchPercent}% match)`;
     document.getElementById('micStatus').textContent = 'Voice verification passed!';
     document.getElementById('micStatus').className = 'mt-2 text-sm text-center text-green-600 font-medium';
   } else {
-    // Poor match
+    // Failed - show what went wrong
     micDone = false;
     matchBox.className = 'rounded-lg p-3 mb-3 text-sm font-medium text-center bg-red-50 border border-red-200 text-red-700';
-    matchBox.innerHTML = `Speech did not match (${matchPercent}% match). Please read the exact text and try again.`;
+    if (result.missing.length > 0) {
+      matchBox.innerHTML = `Missing required words: <strong>${result.missing.join(', ')}</strong>. Please read the exact text shown above.`;
+    } else {
+      matchBox.innerHTML = `Speech did not match (${matchPercent}% match). Please read the exact text and try again.`;
+    }
     document.getElementById('micStatus').textContent = 'Text did not match - try again';
     document.getElementById('micStatus').className = 'mt-2 text-sm text-center text-red-500 font-medium';
     enableRetryRecording();
@@ -452,6 +466,71 @@ function enableRetryRecording() {
   document.getElementById('startRecordBtn').disabled = false;
   document.getElementById('startRecordBtn').className = 'flex-1 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition cursor-pointer';
   document.getElementById('startRecordBtn').textContent = 'Try Again';
+}
+
+// ==================== SKIN TONE FACE DETECTION (Fallback) ====================
+
+// Detect skin-tone pixels using YCbCr color space - works across all skin tones
+function isSkinPixel(r, g, b) {
+  const y  = 0.299 * r + 0.587 * g + 0.114 * b;
+  const cb = 128 - 0.169 * r - 0.331 * g + 0.500 * b;
+  const cr = 128 + 0.500 * r - 0.419 * g - 0.081 * b;
+  return y > 60 && cb > 77 && cb < 127 && cr > 133 && cr < 173;
+}
+
+// Analyze the center oval region of the canvas for face presence
+function detectFaceInCanvas(canvas) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+  const imageData = ctx.getImageData(0, 0, w, h);
+  const data = imageData.data;
+
+  // Oval region matching the SVG overlay (center of frame)
+  const centerX = w / 2;
+  const centerY = h * 0.45;
+  const radiusX = w * 0.17;
+  const radiusY = h * 0.35;
+
+  let skinPixels = 0;
+  let totalPixels = 0;
+  let rSum = 0, gSum = 0, bSum = 0;
+
+  const step = 3; // sample every 3rd pixel for speed
+  for (let py = Math.max(0, Math.floor(centerY - radiusY)); py < Math.min(h, Math.floor(centerY + radiusY)); py += step) {
+    for (let px = Math.max(0, Math.floor(centerX - radiusX)); px < Math.min(w, Math.floor(centerX + radiusX)); px += step) {
+      const dx = (px - centerX) / radiusX;
+      const dy = (py - centerY) / radiusY;
+      if (dx * dx + dy * dy > 1) continue;
+
+      const idx = (py * w + px) * 4;
+      const r = data[idx], g = data[idx + 1], b = data[idx + 2];
+      totalPixels++;
+      rSum += r; gSum += g; bSum += b;
+
+      if (isSkinPixel(r, g, b)) skinPixels++;
+    }
+  }
+
+  const skinRatio = totalPixels > 0 ? skinPixels / totalPixels : 0;
+
+  // Also check color variance (a wall/ceiling is uniform, a face has variation)
+  const avgR = rSum / totalPixels, avgG = gSum / totalPixels, avgB = bSum / totalPixels;
+  let variance = 0;
+  for (let py = Math.max(0, Math.floor(centerY - radiusY)); py < Math.min(h, Math.floor(centerY + radiusY)); py += step * 2) {
+    for (let px = Math.max(0, Math.floor(centerX - radiusX)); px < Math.min(w, Math.floor(centerX + radiusX)); px += step * 2) {
+      const dx = (px - centerX) / radiusX;
+      const dy = (py - centerY) / radiusY;
+      if (dx * dx + dy * dy > 1) continue;
+      const idx = (py * w + px) * 4;
+      variance += Math.pow(data[idx] - avgR, 2) + Math.pow(data[idx+1] - avgG, 2) + Math.pow(data[idx+2] - avgB, 2);
+    }
+  }
+  variance = Math.sqrt(variance / totalPixels);
+
+  // Need at least 15% skin pixels AND enough color variation (not a blank surface)
+  const hasFace = skinRatio >= 0.15 && variance > 25;
+  return { hasFace, skinRatio: Math.round(skinRatio * 100), variance: Math.round(variance) };
 }
 
 // ==================== PHOTO CAPTURE ====================
@@ -470,7 +549,7 @@ async function takePhoto() {
   ctx.drawImage(video, 0, 0);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-  // Verify face one final time on captured frame
+  // Verify face using FaceDetector API if available
   if (faceDetector) {
     try {
       const faces = await faceDetector.detect(canvas);
@@ -480,6 +559,14 @@ async function takePhoto() {
         return;
       }
     } catch (e) {}
+  }
+
+  // Always run skin tone detection as additional verification
+  const faceCheck = detectFaceInCanvas(canvas);
+  if (!faceCheck.hasFace) {
+    document.getElementById('photoStatus').textContent = 'No face detected. Please position your face clearly in the oval and try again.';
+    document.getElementById('photoStatus').className = 'mt-2 text-sm text-center text-red-500 font-medium';
+    return;
   }
 
   stopFaceDetectionLoop();
