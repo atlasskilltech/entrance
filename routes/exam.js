@@ -58,7 +58,9 @@ router.get('/exam/:examId/start', isStudentAuthenticated, async (req, res) => {
         return res.redirect('/exam/live');
       }
       if (session.status === 'av_verification') {
-        return res.redirect('/exam/av-check');
+        // A/V check bypassed - advance to rules
+        await db.query('UPDATE ent_sessions SET status = "rules" WHERE id = ?', [sessionId]);
+        return res.redirect('/exam/rules');
       }
       if (session.status === 'rules') {
         return res.redirect('/exam/rules');
@@ -73,13 +75,13 @@ router.get('/exam/:examId/start', isStudentAuthenticated, async (req, res) => {
       req.session.examSessionId = sessionId;
     }
 
-    // Bypass compatibility check - save basic info and skip to A/V check
+    // Bypass compatibility check & A/V verification - skip directly to rules
     const browserInfo = req.headers['user-agent'] ? req.headers['user-agent'].substring(0, 200) : '';
     await db.query(
-      'UPDATE ent_sessions SET status = "av_verification", browser_info = ? WHERE id = ?',
+      'UPDATE ent_sessions SET status = "rules", browser_info = ? WHERE id = ?',
       [browserInfo, sessionId]
     );
-    res.redirect('/exam/av-check');
+    res.redirect('/exam/rules');
   } catch (err) {
     console.error('Start exam error:', err);
     res.redirect('/dashboard');
