@@ -1,0 +1,282 @@
+<%- include('../partials/head', { title: 'Assign Students - ' + exam.title }) %>
+
+<div class="min-h-screen bg-gray-50 flex">
+  <%- include('../partials/admin-sidebar') %>
+
+  <div class="ml-56 flex-1">
+    <!-- Header -->
+    <div class="bg-white border-b px-6 py-4">
+      <div class="flex items-center space-x-2 text-sm text-gray-500 mb-1">
+        <a href="/admin/exams" class="hover:text-indigo-600 transition">Question Papers</a>
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        <a href="/admin/exams/<%= exam.id %>" class="hover:text-indigo-600 transition"><%= exam.title %></a>
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        <span class="text-gray-800">Assign Students</span>
+      </div>
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-xl font-bold text-gray-800">Assign Students & Send Invitations</h1>
+          <p class="text-sm text-gray-500 mt-0.5"><%= exam.title %> <% if (exam.exam_code) { %><span class="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded ml-1"><%= exam.exam_code %></span><% } %></p>
+        </div>
+        <div class="flex space-x-2">
+          <button onclick="sendAllEmails()" class="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition cursor-pointer flex items-center space-x-1" id="sendAllBtn">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            <span>Send Email to All</span>
+          </button>
+          <a href="/admin/exams/<%= exam.id %>" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">
+            Back to Paper
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-6">
+      <div class="grid grid-cols-3 gap-6">
+
+        <!-- Left: Add Students -->
+        <div class="col-span-1">
+          <div class="bg-white rounded-xl shadow-sm border p-5">
+            <h3 class="font-bold text-gray-800 mb-3">Add Students</h3>
+
+            <!-- Search -->
+            <input type="text" id="studentSearch" placeholder="Search by name or App ID..."
+                   class="w-full px-3 py-2 border rounded-lg text-sm mb-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                   oninput="filterStudents()">
+
+            <!-- Select All -->
+            <div class="flex items-center justify-between mb-2 px-1">
+              <label class="flex items-center space-x-2 cursor-pointer">
+                <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" class="w-4 h-4 text-indigo-600 rounded cursor-pointer">
+                <span class="text-xs font-medium text-gray-600">Select All</span>
+              </label>
+              <span class="text-xs text-gray-400" id="selectedCount">0 selected</span>
+            </div>
+
+            <!-- Student List -->
+            <div class="max-h-[420px] overflow-y-auto border rounded-lg divide-y" id="studentList">
+              <% const assignedIds = assignments.map(a => a.student_id); %>
+              <% students.forEach(s => { %>
+                <% if (!assignedIds.includes(s.id)) { %>
+                  <label class="flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer student-item"
+                         data-name="<%= s.name.toLowerCase() %>" data-appid="<%= s.application_id.toLowerCase() %>">
+                    <input type="checkbox" class="student-checkbox w-4 h-4 text-indigo-600 rounded cursor-pointer mr-3" value="<%= s.id %>" onchange="updateSelectedCount()">
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-medium text-gray-800 truncate"><%= s.name %></p>
+                      <p class="text-xs text-gray-400"><%= s.application_id %> <% if (s.email) { %>&bull; <%= s.email %><% } else { %><span class="text-red-400">No email</span><% } %></p>
+                    </div>
+                  </label>
+                <% } %>
+              <% }) %>
+            </div>
+
+            <button onclick="assignSelected()" id="assignBtn"
+                    class="w-full mt-3 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition cursor-pointer disabled:bg-gray-300 disabled:cursor-not-allowed" disabled>
+              Assign Selected Students
+            </button>
+          </div>
+        </div>
+
+        <!-- Right: Assigned Students -->
+        <div class="col-span-2">
+          <div class="bg-white rounded-xl shadow-sm border">
+            <div class="px-5 py-4 border-b flex items-center justify-between">
+              <div>
+                <h3 class="font-bold text-gray-800">Assigned Students (<%= assignments.length %>)</h3>
+                <p class="text-xs text-gray-400 mt-0.5">Students assigned to this exam</p>
+              </div>
+              <div class="flex items-center space-x-3 text-xs">
+                <span class="flex items-center space-x-1">
+                  <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                  <span class="text-gray-500">Email Sent</span>
+                </span>
+                <span class="flex items-center space-x-1">
+                  <span class="w-2 h-2 rounded-full bg-gray-300"></span>
+                  <span class="text-gray-500">Pending</span>
+                </span>
+              </div>
+            </div>
+
+            <% if (assignments.length === 0) { %>
+              <div class="p-8 text-center">
+                <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                <p class="text-gray-400 text-sm mb-1">No students assigned yet</p>
+                <p class="text-gray-400 text-xs">Select students from the left panel and click assign</p>
+              </div>
+            <% } %>
+
+            <div class="divide-y">
+              <% assignments.forEach(a => { %>
+                <div class="px-5 py-3 hover:bg-gray-50 transition flex items-center justify-between">
+                  <div class="flex items-center space-x-3 flex-1 min-w-0">
+                    <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600">
+                      <%= a.name.charAt(0).toUpperCase() %>
+                    </div>
+                    <div class="min-w-0">
+                      <p class="text-sm font-medium text-gray-800 truncate"><%= a.name %></p>
+                      <p class="text-xs text-gray-400"><%= a.application_id %> <% if (a.email) { %>&bull; <%= a.email %><% } %></p>
+                    </div>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <% if (a.email_sent) { %>
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700">
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        Sent <%= a.email_sent_at ? new Date(a.email_sent_at).toLocaleDateString() : '' %>
+                      </span>
+                    <% } else { %>
+                      <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">Not sent</span>
+                    <% } %>
+                    <% if (a.email) { %>
+                      <button onclick="sendSingleEmail(<%= a.student_id %>, '<%= a.name.replace(/'/g, "\\'") %>')" class="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition cursor-pointer" title="Send/Resend Email">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                      </button>
+                    <% } %>
+                    <button onclick="removeAssignment(<%= a.id %>, '<%= a.name.replace(/'/g, "\\'") %>')" class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer" title="Remove">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                  </div>
+                </div>
+              <% }) %>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Email Status Modal -->
+<div id="emailModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+  <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6 text-center">
+    <div id="emailSpinner" class="mb-4">
+      <svg class="animate-spin h-10 w-10 text-indigo-600 mx-auto" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+    </div>
+    <h3 class="text-lg font-bold text-gray-800 mb-1" id="emailModalTitle">Sending Emails...</h3>
+    <p class="text-sm text-gray-500" id="emailModalMessage">Please wait while invitations are being sent.</p>
+    <button id="emailModalClose" onclick="closeEmailModal()" class="hidden mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition cursor-pointer">OK</button>
+  </div>
+</div>
+
+<script>
+const examId = <%= exam.id %>;
+
+function filterStudents() {
+  const q = document.getElementById('studentSearch').value.toLowerCase();
+  document.querySelectorAll('.student-item').forEach(el => {
+    const name = el.dataset.name;
+    const appid = el.dataset.appid;
+    el.style.display = (name.includes(q) || appid.includes(q)) ? '' : 'none';
+  });
+}
+
+function toggleSelectAll() {
+  const checked = document.getElementById('selectAll').checked;
+  document.querySelectorAll('.student-checkbox').forEach(cb => {
+    if (cb.closest('.student-item').style.display !== 'none') cb.checked = checked;
+  });
+  updateSelectedCount();
+}
+
+function updateSelectedCount() {
+  const count = document.querySelectorAll('.student-checkbox:checked').length;
+  document.getElementById('selectedCount').textContent = count + ' selected';
+  document.getElementById('assignBtn').disabled = count === 0;
+}
+
+async function assignSelected() {
+  const ids = [...document.querySelectorAll('.student-checkbox:checked')].map(cb => parseInt(cb.value));
+  if (ids.length === 0) return;
+
+  const btn = document.getElementById('assignBtn');
+  btn.disabled = true;
+  btn.textContent = 'Assigning...';
+
+  const res = await fetch(`/admin/exams/${examId}/assign`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ student_ids: ids })
+  });
+  const data = await res.json();
+  if (data.success) {
+    window.location.reload();
+  } else {
+    alert(data.error || 'Failed to assign');
+    btn.disabled = false;
+    btn.textContent = 'Assign Selected Students';
+  }
+}
+
+async function removeAssignment(id, name) {
+  if (!confirm(`Remove ${name} from this exam?`)) return;
+  const res = await fetch(`/admin/assignments/${id}/remove`, { method: 'POST' });
+  const data = await res.json();
+  if (data.success) window.location.reload();
+  else alert(data.error || 'Failed');
+}
+
+function showEmailModal(title, message, done) {
+  document.getElementById('emailModalTitle').textContent = title;
+  document.getElementById('emailModalMessage').textContent = message;
+  document.getElementById('emailSpinner').style.display = done ? 'none' : '';
+  document.getElementById('emailModalClose').classList.toggle('hidden', !done);
+  document.getElementById('emailModal').classList.remove('hidden');
+}
+
+function closeEmailModal() {
+  document.getElementById('emailModal').classList.add('hidden');
+  window.location.reload();
+}
+
+async function sendAllEmails() {
+  if (!confirm('Send exam invitation emails to ALL assigned students?')) return;
+
+  showEmailModal('Sending Emails...', 'Please wait while invitations are being sent.', false);
+
+  try {
+    const res = await fetch(`/admin/exams/${examId}/send-emails`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      let msg = `${data.sentCount} email(s) sent successfully.`;
+      if (data.failedCount > 0) msg += ` ${data.failedCount} failed.`;
+      showEmailModal('Emails Sent', msg, true);
+    } else {
+      showEmailModal('Error', data.error || 'Failed to send emails.', true);
+    }
+  } catch (err) {
+    showEmailModal('Error', 'Network error. Please try again.', true);
+  }
+}
+
+async function sendSingleEmail(studentId, name) {
+  if (!confirm(`Send exam invitation email to ${name}?`)) return;
+
+  showEmailModal('Sending Email...', `Sending invitation to ${name}...`, false);
+
+  try {
+    const res = await fetch(`/admin/exams/${examId}/send-emails`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ student_ids: [studentId] })
+    });
+    const data = await res.json();
+
+    if (data.success && data.sentCount > 0) {
+      showEmailModal('Email Sent', `Invitation sent to ${name} successfully.`, true);
+    } else {
+      showEmailModal('Error', data.error || `Failed to send email to ${name}.`, true);
+    }
+  } catch (err) {
+    showEmailModal('Error', 'Network error. Please try again.', true);
+  }
+}
+</script>
+
+<%- include('../partials/footer') %>

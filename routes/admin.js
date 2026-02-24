@@ -3,7 +3,9 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const path = require('path');
+const { v4: uuidv4 } = require('uuid');
 const db = require('../config/database');
+const { sendExamInvitation } = require('../config/email');
 const { isAdminAuthenticated } = require('../middleware/auth');
 
 // Multer setup for question image uploads
@@ -617,6 +619,156 @@ router.post('/admin/students/:id/delete', isAdminAuthenticated, async (req, res)
   } catch (err) {
     console.error(err);
     res.json({ success: false, error: 'Cannot delete student with active exam sessions' });
+  }
+});
+
+// ==================== EXAM ASSIGNMENTS ====================
+
+// View assignment page for an exam
+router.get('/admin/exams/:examId/assignments', isAdminAuthenticated, async (req, res) => {
+  try {
+    const [exams] = await db.query('SELECT * FROM ent_exams WHERE id = ?', [req.params.examId]);
+    if (exams.length === 0) return res.redirect('/admin/exams');
+
+    // Get all students
+    const [students] = await db.query('SELECT id, application_id, name, email, mobile FROM ent_students ORDER BY name');
+
+    // Get current assignments for this exam
+    const [assignments] = await db.query(
+      `SELECT a.*, s.application_id, s.name, s.email, s.mobile
+       FROM ent_exam_assignments a
+       JOIN ent_students s ON a.student_id = s.id
+       WHERE a.exam_id = ?
+       ORDER BY a.assigned_at DESC`,
+      [req.params.examId]
+    );
+
+    const [degrees] = await db.query('SELECT * FROM ent_degrees WHERE is_active = 1 ORDER BY name');
+
+    res.render('admin/exam-assignments', {
+      adminName: req.session.adminName,
+      activePage: 'exams',
+      exam: exams[0],
+      students,
+      assignments,
+      degrees
+    });
+  } catch (err) {
+    console.error(err);
+    res.redirect('/admin/exams');
+  }
+});
+
+// Assign students to exam
+router.post('/admin/exams/:examId/assign', isAdminAuthenticated, async (req, res) => {
+  try {
+    const { student_ids } = req.body;
+    if (!student_ids || student_ids.length === 0) {
+      return res.json({ success: false, error: 'No students selected' });
+    }
+
+    let assignedCount = 0;
+    for (const studentId of student_ids) {
+      try {
+        await db.query(
+          'INSERT IGNORE INTO ent_exam_assignments (student_id, exam_id, assigned_by) VALUES (?, ?, ?)',
+          [studentId, req.params.examId, req.session.adminId]
+        );
+        assignedCount++;
+      } catch (e) {
+        // Skip duplicates
+      }
+    }
+
+    res.json({ success: true, assignedCount });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, error: 'Failed to assign students' });
+  }
+});
+
+// Remove assignment
+router.post('/admin/assignments/:id/remove', isAdminAuthenticated, async (req, res) => {
+  try {
+    await db.query('DELETE FROM ent_exam_assignments WHERE id = ?', [req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, error: 'Failed to remove assignment' });
+  }
+});
+
+// Send exam emails to assigned students (all or specific)
+router.post('/admin/exams/:examId/send-emails', isAdminAuthenticated, async (req, res) => {
+  try {
+    const { student_ids } = req.body; // optional: specific student IDs, or empty for all
+
+    const [exams] = await db.query('SELECT * FROM ent_exams WHERE id = ?', [req.params.examId]);
+    if (exams.length === 0) return res.json({ success: false, error: 'Exam not found' });
+    const exam = exams[0];
+
+    // Get students to email
+    let query, params;
+    if (student_ids && student_ids.length > 0) {
+      query = `SELECT a.id as assignment_id, s.* FROM ent_exam_assignments a
+               JOIN ent_students s ON a.student_id = s.id
+               WHERE a.exam_id = ? AND s.id IN (?) AND s.email IS NOT NULL AND s.email != ''`;
+      params = [req.params.examId, student_ids];
+    } else {
+      query = `SELECT a.id as assignment_id, s.* FROM ent_exam_assignments a
+               JOIN ent_students s ON a.student_id = s.id
+               WHERE a.exam_id = ? AND s.email IS NOT NULL AND s.email != ''`;
+      params = [req.params.examId];
+    }
+
+    const [students] = await db.query(query, params);
+
+    if (students.length === 0) {
+      return res.json({ success: false, error: 'No students with email addresses found' });
+    }
+
+    let sentCount = 0;
+    let failedCount = 0;
+    const errors = [];
+
+    for (const student of students) {
+      try {
+        // Generate unique token (expires in 72 hours)
+        const token = uuidv4();
+        const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+
+        await db.query(
+          'INSERT INTO ent_login_tokens (student_id, token, exam_id, expires_at) VALUES (?, ?, ?, ?)',
+          [student.id, token, req.params.examId, expiresAt]
+        );
+
+        // Send email
+        await sendExamInvitation(student, exam, token);
+
+        // Mark email as sent
+        await db.query(
+          'UPDATE ent_exam_assignments SET email_sent = 1, email_sent_at = NOW() WHERE id = ?',
+          [student.assignment_id]
+        );
+
+        sentCount++;
+      } catch (emailErr) {
+        console.error(`Failed to send email to ${student.email}:`, emailErr.message);
+        failedCount++;
+        errors.push(`${student.name} (${student.email}): ${emailErr.message}`);
+      }
+    }
+
+    res.json({
+      success: true,
+      sentCount,
+      failedCount,
+      totalStudents: students.length,
+      errors: errors.length > 0 ? errors : undefined
+    });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, error: 'Failed to send emails' });
   }
 });
 

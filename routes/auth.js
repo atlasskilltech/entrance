@@ -69,6 +69,43 @@ router.post('/admin/login', async (req, res) => {
   }
 });
 
+// Auto-login via email token link
+router.get('/auth/token/:token', async (req, res) => {
+  try {
+    const [tokens] = await db.query(
+      `SELECT t.*, s.id as student_id, s.name, s.application_id
+       FROM ent_login_tokens t
+       JOIN ent_students s ON t.student_id = s.id
+       WHERE t.token = ? AND t.expires_at > NOW() AND t.used_at IS NULL`,
+      [req.params.token]
+    );
+
+    if (tokens.length === 0) {
+      return res.render('login', { error: 'This link has expired or is invalid. Please use your Application ID to login.' });
+    }
+
+    const tokenRow = tokens[0];
+
+    // Mark token as used
+    await db.query('UPDATE ent_login_tokens SET used_at = NOW() WHERE id = ?', [tokenRow.id]);
+
+    // Set session (auto-login)
+    req.session.studentId = tokenRow.student_id;
+    req.session.studentName = tokenRow.name;
+    req.session.applicationId = tokenRow.application_id;
+
+    // If token is tied to a specific exam, redirect directly to start it
+    if (tokenRow.exam_id) {
+      return res.redirect(`/exam/${tokenRow.exam_id}/start`);
+    }
+
+    res.redirect('/dashboard');
+  } catch (err) {
+    console.error('Token login error:', err);
+    res.render('login', { error: 'An error occurred. Please try logging in manually.' });
+  }
+});
+
 // Admin logout
 router.get('/admin/logout', (req, res) => {
   req.session.destroy();
