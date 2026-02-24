@@ -37,7 +37,22 @@ const responseUpload = multer({
 // Student dashboard
 router.get('/dashboard', isStudentAuthenticated, async (req, res) => {
   try {
-    const [exams] = await db.query('SELECT * FROM ent_exams WHERE is_active = 1');
+    // Show only exams assigned to this student (fall back to all active exams if no assignments exist yet)
+    const [assignedExams] = await db.query(
+      `SELECT e.* FROM ent_exams e
+       INNER JOIN ent_exam_assignments a ON a.exam_id = e.id
+       WHERE a.student_id = ? AND e.is_active = 1
+       ORDER BY e.exam_date DESC, e.created_at DESC`,
+      [req.session.studentId]
+    );
+
+    // Fallback: if assignments table doesn't exist or no assignments, show all active exams
+    let exams = assignedExams;
+    if (assignedExams.length === 0) {
+      const [allExams] = await db.query('SELECT * FROM ent_exams WHERE is_active = 1');
+      exams = allExams;
+    }
+
     const [sessions] = await db.query(
       'SELECT * FROM ent_sessions WHERE student_id = ? ORDER BY created_at DESC',
       [req.session.studentId]
@@ -49,6 +64,20 @@ router.get('/dashboard', isStudentAuthenticated, async (req, res) => {
       sessions
     });
   } catch (err) {
+    // If ent_exam_assignments table doesn't exist yet, fall back to showing all
+    if (err.code === 'ER_NO_SUCH_TABLE') {
+      const [exams] = await db.query('SELECT * FROM ent_exams WHERE is_active = 1');
+      const [sessions] = await db.query(
+        'SELECT * FROM ent_sessions WHERE student_id = ? ORDER BY created_at DESC',
+        [req.session.studentId]
+      );
+      return res.render('dashboard', {
+        studentName: req.session.studentName,
+        applicationId: req.session.applicationId,
+        exams,
+        sessions
+      });
+    }
     console.error('Dashboard error:', err);
     res.redirect('/login');
   }
