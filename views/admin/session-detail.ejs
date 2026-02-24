@@ -154,21 +154,38 @@
         <!-- Responses -->
         <div class="bg-white rounded-xl shadow-sm border p-5">
           <h3 class="font-bold text-gray-800 mb-3">Student Responses</h3>
-          <div class="space-y-2 max-h-96 overflow-y-auto">
+          <div class="space-y-2 max-h-[600px] overflow-y-auto">
             <% responses.forEach((r, i) => { %>
-              <div class="p-2 rounded-lg text-sm border <%= r.selected_option === r.correct_option ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200' %>">
-                <div class="flex justify-between">
-                  <span class="font-medium text-gray-700">Q<%= i + 1 %></span>
-                  <span>
-                    <span class="<%= r.selected_option === r.correct_option ? 'text-green-600' : 'text-red-600' %> font-medium">
-                      <%= r.selected_option || '-' %>
-                    </span>
-                    <span class="text-gray-400"> / </span>
-                    <span class="text-green-600"><%= r.correct_option %></span>
-                  </span>
+              <% if (r.question_type === 'descriptive') { %>
+                <!-- Descriptive / Long Answer -->
+                <div class="p-3 rounded-lg text-sm border bg-blue-50 border-blue-200">
+                  <div class="flex justify-between items-center">
+                    <span class="font-medium text-gray-700">Q<%= i + 1 %></span>
+                    <span class="inline-flex px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">Descriptive</span>
+                  </div>
+                  <p class="text-xs text-gray-500 mt-0.5 mb-2"><%= r.question_text %></p>
+                  <% if (r.answer_text) { %>
+                    <div class="bg-white rounded-lg p-2 border text-xs text-gray-700 whitespace-pre-wrap max-h-40 overflow-y-auto"><%= r.answer_text %></div>
+                  <% } else { %>
+                    <p class="text-xs text-gray-400 italic">No answer provided</p>
+                  <% } %>
                 </div>
-                <p class="text-xs text-gray-500 truncate mt-0.5"><%= r.question_text %></p>
-              </div>
+              <% } else { %>
+                <!-- MCQ Answer -->
+                <div class="p-2 rounded-lg text-sm border <%= r.selected_option === r.correct_option ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200' %>">
+                  <div class="flex justify-between">
+                    <span class="font-medium text-gray-700">Q<%= i + 1 %></span>
+                    <span>
+                      <span class="<%= r.selected_option === r.correct_option ? 'text-green-600' : 'text-red-600' %> font-medium">
+                        <%= r.selected_option || '-' %>
+                      </span>
+                      <span class="text-gray-400"> / </span>
+                      <span class="text-green-600"><%= r.correct_option %></span>
+                    </span>
+                  </div>
+                  <p class="text-xs text-gray-500 truncate mt-0.5"><%= r.question_text %></p>
+                </div>
+              <% } %>
             <% }) %>
             <% if (responses.length === 0) { %>
               <p class="text-sm text-gray-400 text-center py-2">No responses recorded</p>

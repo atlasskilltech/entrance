@@ -38,10 +38,24 @@
 
           <h2 class="text-lg font-semibold text-gray-800 mb-6" id="questionText">Loading...</h2>
 
-          <% if (false) { %><img id="questionImage" class="mb-4 rounded-lg max-w-full" src=""><% } %>
+          <div id="questionImageContainer" class="mb-4 hidden">
+            <img id="questionImage" class="rounded-lg max-w-full max-h-80 border" src="">
+          </div>
 
           <div class="space-y-3" id="optionsContainer">
-            <!-- Options will be populated by JS -->
+            <!-- Options will be populated by JS for MCQ -->
+          </div>
+
+          <!-- Long Answer / Descriptive textarea -->
+          <div id="longAnswerContainer" class="hidden">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Write your answer below:</label>
+            <textarea id="longAnswerText" rows="10" placeholder="Type your detailed answer here..."
+                      class="w-full px-4 py-3 border-2 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-y"
+                      oninput="autoSaveLongAnswer()"></textarea>
+            <div class="flex justify-between items-center mt-2">
+              <p class="text-xs text-gray-400" id="charCount">0 characters</p>
+              <p class="text-xs text-green-600 hidden" id="saveIndicator">Saved</p>
+            </div>
           </div>
         </div>
 
@@ -205,12 +219,15 @@ const maxViolations = <%= session.max_violations %>;
 const autoSaveInterval = <%= session.auto_save_interval || 15 %> * 1000;
 let remainingSeconds = <%= remainingSeconds %>;
 let currentIndex = 0;
-let answers = {};     // { questionId: selectedOption }
-let reviewed = {};    // { questionId: true }
+let answers = {};      // { questionId: selectedOption }
+let textAnswers = {};  // { questionId: answerText }
+let reviewed = {};     // { questionId: true }
+let longAnswerTimer = null;
 
 // Load existing responses
 existingResponses.forEach(r => {
   if (r.selected_option) answers[r.question_id] = r.selected_option;
+  if (r.answer_text) textAnswers[r.question_id] = r.answer_text;
   if (r.marked_for_review) reviewed[r.question_id] = true;
 });
 
@@ -253,31 +270,58 @@ function renderQuestion() {
   document.getElementById('questionNumber').textContent = `Question ${currentIndex + 1} of ${questions.length}`;
   document.getElementById('questionText').textContent = q.question_text;
 
-  const opts = [
-    { key: 'A', text: q.option_a },
-    { key: 'B', text: q.option_b },
-    { key: 'C', text: q.option_c },
-    { key: 'D', text: q.option_d }
-  ];
+  // Show question image if present
+  const imgContainer = document.getElementById('questionImageContainer');
+  const imgEl = document.getElementById('questionImage');
+  if (q.question_image) {
+    imgEl.src = q.question_image;
+    imgContainer.classList.remove('hidden');
+  } else {
+    imgContainer.classList.add('hidden');
+    imgEl.src = '';
+  }
 
-  const container = document.getElementById('optionsContainer');
-  container.innerHTML = '';
-  opts.forEach(opt => {
-    if (!opt.text) return;
-    const selected = answers[q.id] === opt.key;
-    const div = document.createElement('div');
-    div.className = `p-4 border-2 rounded-xl cursor-pointer transition hover:border-indigo-300 ${selected ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200'}`;
-    div.onclick = () => selectOption(q.id, opt.key);
-    div.innerHTML = `
-      <div class="flex items-center space-x-3">
-        <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-bold ${selected ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-gray-300 text-gray-500'}">
-          ${opt.key}
+  const isDescriptive = q.question_type === 'descriptive';
+  const optionsContainer = document.getElementById('optionsContainer');
+  const longAnswerContainer = document.getElementById('longAnswerContainer');
+
+  if (isDescriptive) {
+    // Show long answer textarea, hide MCQ options
+    optionsContainer.classList.add('hidden');
+    longAnswerContainer.classList.remove('hidden');
+    const textarea = document.getElementById('longAnswerText');
+    textarea.value = textAnswers[q.id] || '';
+    document.getElementById('charCount').textContent = (textAnswers[q.id] || '').length + ' characters';
+  } else {
+    // Show MCQ options, hide long answer
+    optionsContainer.classList.remove('hidden');
+    longAnswerContainer.classList.add('hidden');
+
+    const opts = [
+      { key: 'A', text: q.option_a },
+      { key: 'B', text: q.option_b },
+      { key: 'C', text: q.option_c },
+      { key: 'D', text: q.option_d }
+    ];
+
+    optionsContainer.innerHTML = '';
+    opts.forEach(opt => {
+      if (!opt.text) return;
+      const selected = answers[q.id] === opt.key;
+      const div = document.createElement('div');
+      div.className = `p-4 border-2 rounded-xl cursor-pointer transition hover:border-indigo-300 ${selected ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200'}`;
+      div.onclick = () => selectOption(q.id, opt.key);
+      div.innerHTML = `
+        <div class="flex items-center space-x-3">
+          <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-bold ${selected ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-gray-300 text-gray-500'}">
+            ${opt.key}
+          </div>
+          <span class="${selected ? 'text-indigo-700 font-medium' : 'text-gray-700'}">${opt.text}</span>
         </div>
-        <span class="${selected ? 'text-indigo-700 font-medium' : 'text-gray-700'}">${opt.text}</span>
-      </div>
-    `;
-    container.appendChild(div);
-  });
+      `;
+      optionsContainer.appendChild(div);
+    });
+  }
 
   // Update review button
   document.getElementById('reviewBtn').textContent = reviewed[q.id] ? 'Remove Review Mark' : 'Mark for Review';
@@ -289,14 +333,30 @@ function renderQuestion() {
 function selectOption(qId, option) {
   answers[qId] = option;
   renderQuestion();
-  saveAnswer(qId, option, !!reviewed[qId]);
+  saveAnswer(qId, option, null, !!reviewed[qId]);
 }
 
 function clearAnswer() {
   const q = questions[currentIndex];
   delete answers[q.id];
+  delete textAnswers[q.id];
   renderQuestion();
-  saveAnswer(q.id, null, !!reviewed[q.id]);
+  saveAnswer(q.id, null, null, !!reviewed[q.id]);
+}
+
+function autoSaveLongAnswer() {
+  const q = questions[currentIndex];
+  const text = document.getElementById('longAnswerText').value;
+  textAnswers[q.id] = text;
+  document.getElementById('charCount').textContent = text.length + ' characters';
+
+  clearTimeout(longAnswerTimer);
+  longAnswerTimer = setTimeout(() => {
+    saveAnswer(q.id, null, text, !!reviewed[q.id]);
+    const indicator = document.getElementById('saveIndicator');
+    indicator.classList.remove('hidden');
+    setTimeout(() => indicator.classList.add('hidden'), 2000);
+  }, 1000);
 }
 
 function markForReview() {
@@ -307,7 +367,7 @@ function markForReview() {
     reviewed[q.id] = true;
   }
   renderQuestion();
-  saveAnswer(q.id, answers[q.id] || null, !!reviewed[q.id]);
+  saveAnswer(q.id, answers[q.id] || null, textAnswers[q.id] || null, !!reviewed[q.id]);
 }
 
 function nextQuestion() {
@@ -332,12 +392,13 @@ function goToQuestion(idx) {
 function updateNavigation() {
   document.querySelectorAll('.question-nav-btn').forEach((btn, i) => {
     const q = questions[i];
+    const hasAnswer = answers[q.id] || (textAnswers[q.id] && textAnswers[q.id].trim().length > 0);
     let cls = 'w-9 h-9 rounded-lg text-xs font-medium border transition cursor-pointer question-nav-btn ';
     if (i === currentIndex) {
       cls += 'bg-indigo-500 text-white border-indigo-500';
     } else if (reviewed[q.id]) {
       cls += 'bg-amber-400 text-white border-amber-400';
-    } else if (answers[q.id]) {
+    } else if (hasAnswer) {
       cls += 'bg-green-500 text-white border-green-500';
     } else {
       cls += 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200';
@@ -347,7 +408,12 @@ function updateNavigation() {
 }
 
 function updateStats() {
-  const answered = Object.keys(answers).length;
+  // Count both MCQ answers and descriptive text answers
+  const answeredSet = new Set([...Object.keys(answers)]);
+  Object.keys(textAnswers).forEach(qId => {
+    if (textAnswers[qId] && textAnswers[qId].trim().length > 0) answeredSet.add(qId);
+  });
+  const answered = answeredSet.size;
   const reviewCount = Object.keys(reviewed).length;
   document.getElementById('statAnswered').textContent = answered;
   document.getElementById('statPending').textContent = questions.length - answered;
@@ -355,11 +421,11 @@ function updateStats() {
 }
 
 // Save answer to server
-function saveAnswer(qId, option, review) {
+function saveAnswer(qId, option, answerText, review) {
   fetch('/api/save-answer', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ question_id: qId, selected_option: option, marked_for_review: review })
+    body: JSON.stringify({ question_id: qId, selected_option: option, answer_text: answerText, marked_for_review: review })
   });
 }
 

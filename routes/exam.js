@@ -242,12 +242,12 @@ router.get('/exam/live', isStudentAuthenticated, hasActiveSession, async (req, r
 // API: Save answer
 router.post('/api/save-answer', isStudentAuthenticated, hasActiveSession, async (req, res) => {
   try {
-    const { question_id, selected_option, marked_for_review } = req.body;
+    const { question_id, selected_option, answer_text, marked_for_review } = req.body;
     await db.query(
-      `INSERT INTO ent_responses (session_id, question_id, selected_option, marked_for_review)
-       VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE selected_option = VALUES(selected_option),
-       marked_for_review = VALUES(marked_for_review), answered_at = NOW()`,
-      [req.session.examSessionId, question_id, selected_option || null, marked_for_review ? 1 : 0]
+      `INSERT INTO ent_responses (session_id, question_id, selected_option, answer_text, marked_for_review)
+       VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE selected_option = VALUES(selected_option),
+       answer_text = VALUES(answer_text), marked_for_review = VALUES(marked_for_review), answered_at = NOW()`,
+      [req.session.examSessionId, question_id, selected_option || null, answer_text || null, marked_for_review ? 1 : 0]
     );
     res.json({ success: true });
   } catch (err) {
@@ -328,14 +328,17 @@ router.post('/exam/submit', isStudentAuthenticated, hasActiveSession, async (req
 
     // Calculate results
     const [responses] = await db.query(
-      `SELECT r.*, q.correct_option, q.marks FROM ent_responses r
+      `SELECT r.*, q.question_type, q.correct_option, q.marks FROM ent_responses r
        JOIN ent_questions q ON r.question_id = q.id WHERE r.session_id = ?`,
       [req.session.examSessionId]
     );
 
-    const totalAnswered = responses.filter(r => r.selected_option).length;
-    const correctAnswers = responses.filter(r => r.selected_option === r.correct_option).length;
-    const score = responses.reduce((sum, r) => sum + (r.selected_option === r.correct_option ? r.marks : 0), 0);
+    const totalAnswered = responses.filter(r => r.selected_option || (r.answer_text && r.answer_text.trim().length > 0)).length;
+    const correctAnswers = responses.filter(r => r.question_type !== 'descriptive' && r.selected_option === r.correct_option).length;
+    const score = responses.reduce((sum, r) => {
+      if (r.question_type === 'descriptive') return sum; // descriptive questions need manual grading
+      return sum + (r.selected_option === r.correct_option ? r.marks : 0);
+    }, 0);
 
     // Calculate risk score based on violations
     const [violations] = await db.query(
