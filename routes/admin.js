@@ -366,7 +366,8 @@ router.post('/admin/exams/:examId/questions/create', isAdminAuthenticated, quest
     const {
       section_id, question_type, difficulty, question_text,
       option_a, option_b, option_c, option_d, correct_option,
-      explanation, marks
+      explanation, marks, allowed_file_types, max_file_size_mb,
+      min_word_count, max_word_count
     } = req.body;
 
     const questionImage = req.file ? `/uploads/questions/${req.file.filename}` : null;
@@ -374,11 +375,15 @@ router.post('/admin/exams/:examId/questions/create', isAdminAuthenticated, quest
 
     await db.query(
       `INSERT INTO ent_questions (exam_id, section_id, question_type, difficulty, question_text,
-        question_image, option_a, option_b, option_c, option_d, correct_option, explanation, marks, sort_order)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        question_image, option_a, option_b, option_c, option_d, correct_option, explanation,
+        allowed_file_types, max_file_size_mb, min_word_count, max_word_count, marks, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [req.params.examId, section_id || null, question_type || 'mcq', difficulty || 'medium',
        question_text, questionImage, option_a || null, option_b || null, option_c || null, option_d || null,
-       correct_option || null, explanation || null, marks || 1, maxOrder[0].next_order]
+       correct_option || null, explanation || null,
+       allowed_file_types || 'pdf,jpg,jpeg,png', max_file_size_mb || 10,
+       min_word_count || 0, max_word_count || 0,
+       marks || 1, maxOrder[0].next_order]
     );
 
     await recalcExamTotals(req.params.examId);
@@ -394,7 +399,8 @@ router.post('/admin/questions/:id/update', isAdminAuthenticated, questionUpload.
     const {
       section_id, question_type, difficulty, question_text,
       option_a, option_b, option_c, option_d, correct_option,
-      explanation, marks, sort_order, remove_image
+      explanation, marks, sort_order, remove_image,
+      allowed_file_types, max_file_size_mb, min_word_count, max_word_count
     } = req.body;
 
     let questionImage;
@@ -408,19 +414,27 @@ router.post('/admin/questions/:id/update', isAdminAuthenticated, questionUpload.
       await db.query(
         `UPDATE ent_questions SET section_id=?, question_type=?, difficulty=?, question_text=?,
           question_image=?, option_a=?, option_b=?, option_c=?, option_d=?, correct_option=?,
-          explanation=?, marks=?, sort_order=? WHERE id=?`,
+          explanation=?, allowed_file_types=?, max_file_size_mb=?, min_word_count=?, max_word_count=?,
+          marks=?, sort_order=? WHERE id=?`,
         [section_id || null, question_type || 'mcq', difficulty || 'medium',
          question_text, questionImage, option_a || null, option_b || null, option_c || null, option_d || null,
-         correct_option || null, explanation || null, marks || 1, sort_order || 0, req.params.id]
+         correct_option || null, explanation || null,
+         allowed_file_types || 'pdf,jpg,jpeg,png', max_file_size_mb || 10,
+         min_word_count || 0, max_word_count || 0,
+         marks || 1, sort_order || 0, req.params.id]
       );
     } else {
       await db.query(
         `UPDATE ent_questions SET section_id=?, question_type=?, difficulty=?, question_text=?,
           option_a=?, option_b=?, option_c=?, option_d=?, correct_option=?,
-          explanation=?, marks=?, sort_order=? WHERE id=?`,
+          explanation=?, allowed_file_types=?, max_file_size_mb=?, min_word_count=?, max_word_count=?,
+          marks=?, sort_order=? WHERE id=?`,
         [section_id || null, question_type || 'mcq', difficulty || 'medium',
          question_text, option_a || null, option_b || null, option_c || null, option_d || null,
-         correct_option || null, explanation || null, marks || 1, sort_order || 0, req.params.id]
+         correct_option || null, explanation || null,
+         allowed_file_types || 'pdf,jpg,jpeg,png', max_file_size_mb || 10,
+         min_word_count || 0, max_word_count || 0,
+         marks || 1, sort_order || 0, req.params.id]
       );
     }
     res.json({ success: true });
@@ -491,7 +505,7 @@ router.get('/admin/session/:id', isAdminAuthenticated, async (req, res) => {
     );
 
     const [responses] = await db.query(`
-      SELECT r.*, q.question_text, q.question_type, q.correct_option, q.marks,
+      SELECT r.*, r.uploaded_file_url, q.question_text, q.question_type, q.correct_option, q.marks,
              s.title as section_title
       FROM ent_responses r
       JOIN ent_questions q ON r.question_id = q.id
