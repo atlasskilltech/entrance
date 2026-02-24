@@ -35,7 +35,7 @@ router.get('/dashboard', isStudentAuthenticated, async (req, res) => {
   }
 });
 
-// Phase 2: Start exam - Go to A/V Verification
+// Phase 1: Start exam - Go to System Compatibility Check
 router.get('/exam/:examId/start', isStudentAuthenticated, async (req, res) => {
   try {
     const [exams] = await db.query('SELECT * FROM ent_exams WHERE id = ? AND is_active = 1', [req.params.examId]);
@@ -57,6 +57,9 @@ router.get('/exam/:examId/start', isStudentAuthenticated, async (req, res) => {
       if (session.status === 'in_progress') {
         return res.redirect('/exam/live');
       }
+      if (session.status === 'compatibility_check') {
+        return res.redirect('/exam/compatibility-check');
+      }
       if (session.status === 'av_verification') {
         return res.redirect('/exam/av-check');
       }
@@ -64,7 +67,7 @@ router.get('/exam/:examId/start', isStudentAuthenticated, async (req, res) => {
         return res.redirect('/exam/rules');
       }
     } else {
-      // Create new session
+      // Create new session (default status is 'compatibility_check')
       const [result] = await db.query(
         'INSERT INTO ent_sessions (student_id, exam_id, ip_address, user_agent) VALUES (?, ?, ?, ?)',
         [req.session.studentId, req.params.examId, req.ip, req.headers['user-agent']]
@@ -73,20 +76,32 @@ router.get('/exam/:examId/start', isStudentAuthenticated, async (req, res) => {
       req.session.examSessionId = sessionId;
     }
 
-    // Set status to A/V verification and redirect to A/V check
-    const browserInfo = req.headers['user-agent'] ? req.headers['user-agent'].substring(0, 200) : '';
-    await db.query(
-      'UPDATE ent_sessions SET status = "av_verification", browser_info = ? WHERE id = ?',
-      [browserInfo, sessionId]
-    );
-    res.redirect('/exam/av-check');
+    res.redirect('/exam/compatibility-check');
   } catch (err) {
     console.error('Start exam error:', err);
     res.redirect('/dashboard');
   }
 });
 
-// Phase 2 -> Phase 3: Save compatibility results
+// Phase 1: System Compatibility Check page
+router.get('/exam/compatibility-check', isStudentAuthenticated, hasActiveSession, async (req, res) => {
+  try {
+    const [sessions] = await db.query(
+      'SELECT es.*, e.title as exam_title FROM ent_sessions es JOIN ent_exams e ON es.exam_id = e.id WHERE es.id = ?',
+      [req.session.examSessionId]
+    );
+    if (sessions.length === 0) return res.redirect('/dashboard');
+    res.render('exam/compatibility-check', {
+      exam: { title: sessions[0].exam_title },
+      studentName: req.session.studentName
+    });
+  } catch (err) {
+    console.error(err);
+    res.redirect('/dashboard');
+  }
+});
+
+// Phase 1 -> Phase 2: Save compatibility results and proceed to A/V check
 router.post('/exam/compatibility-done', isStudentAuthenticated, hasActiveSession, async (req, res) => {
   try {
     const { browser_info, screen_resolution } = req.body;
