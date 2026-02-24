@@ -194,18 +194,25 @@ async function assignSelected() {
   btn.disabled = true;
   btn.textContent = 'Assigning...';
 
-  const res = await fetch(`/admin/exams/${examId}/assign`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ student_ids: ids })
-  });
-  const data = await res.json();
-  if (data.success) {
-    window.location.reload();
-  } else {
-    alert(data.error || 'Failed to assign');
-    btn.disabled = false;
-    btn.textContent = 'Assign Selected Students';
+  showEmailModal('Assigning & Sending Emails...', 'Please wait while students are being assigned and invitations are sent.', false);
+
+  try {
+    const res = await fetch(`/admin/exams/${examId}/assign`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ student_ids: ids })
+    });
+    const data = await res.json();
+    if (data.success) {
+      let msg = `${data.assignedCount} student(s) assigned.`;
+      if (data.emailSentCount > 0) msg += ` ${data.emailSentCount} invitation email(s) sent.`;
+      if (data.emailFailedCount > 0) msg += ` ${data.emailFailedCount} email(s) failed.`;
+      showEmailModal('Assignment Complete', msg, true);
+    } else {
+      showEmailModal('Error', data.error || 'Failed to assign students.', true);
+    }
+  } catch (err) {
+    showEmailModal('Error', 'Network error. Please try again.', true);
   }
 }
 
