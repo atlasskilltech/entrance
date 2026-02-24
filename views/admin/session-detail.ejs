@@ -68,7 +68,7 @@
             <div>
               <div class="flex justify-between text-xs mb-1">
                 <span>Risk Score</span>
-                <span class="<%= session.risk_score >= 70 ? 'text-red-600' : session.risk_score >= 40 ? 'text-amber-600' : 'text-green-600' %>"><%= session.risk_score ? session.risk_score.toFixed(1) : 0 %>%</span>
+                <span class="<%= session.risk_score >= 70 ? 'text-red-600' : session.risk_score >= 40 ? 'text-amber-600' : 'text-green-600' %>"><%= session.risk_score ? Number(session.risk_score).toFixed(1) : 0 %>%</span>
               </div>
               <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div class="h-full rounded-full <%= session.risk_score >= 70 ? 'bg-red-500' : session.risk_score >= 40 ? 'bg-amber-500' : 'bg-green-500' %>" style="width: <%= session.risk_score || 0 %>%"></div>
