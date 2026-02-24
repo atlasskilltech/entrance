@@ -35,7 +35,7 @@ router.get('/dashboard', isStudentAuthenticated, async (req, res) => {
   }
 });
 
-// Phase 2: Start exam - System Compatibility Check
+// Phase 2: Start exam - Bypass system compatibility check, go directly to A/V Check
 router.get('/exam/:examId/start', isStudentAuthenticated, async (req, res) => {
   try {
     const [exams] = await db.query('SELECT * FROM ent_exams WHERE id = ? AND is_active = 1', [req.params.examId]);
@@ -73,11 +73,13 @@ router.get('/exam/:examId/start', isStudentAuthenticated, async (req, res) => {
       req.session.examSessionId = sessionId;
     }
 
-    res.render('exam/compatibility-check', {
-      exam: exams[0],
-      sessionId,
-      studentName: req.session.studentName
-    });
+    // Bypass compatibility check - save basic info and skip to A/V check
+    const browserInfo = req.headers['user-agent'] ? req.headers['user-agent'].substring(0, 200) : '';
+    await db.query(
+      'UPDATE ent_sessions SET status = "av_verification", browser_info = ? WHERE id = ?',
+      [browserInfo, sessionId]
+    );
+    res.redirect('/exam/av-check');
   } catch (err) {
     console.error('Start exam error:', err);
     res.redirect('/dashboard');
