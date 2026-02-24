@@ -212,6 +212,22 @@ const examId = <%= exam.id %>;
 const questionId = <%= question ? question.id : 'null' %>;
 let addMore = false;
 
+// Section type map for auto-selecting question type
+const sectionTypeMap = {
+  <% sections.forEach(s => { %>'<%= s.id %>': '<%= s.section_type || "mcq" %>',<% }) %>
+};
+
+// Auto-set question type based on selected section
+function syncTypeFromSection() {
+  const sectionId = document.getElementById('qSection').value;
+  if (sectionId && sectionTypeMap[sectionId]) {
+    document.getElementById('qType').value = sectionTypeMap[sectionId];
+    toggleOptionsBlock();
+  }
+}
+
+document.getElementById('qSection').addEventListener('change', syncTypeFromSection);
+
 function buildFormData() {
   const fd = new FormData();
   fd.append('section_id', document.getElementById('qSection').value || '');
@@ -268,6 +284,7 @@ document.getElementById('questionForm').addEventListener('submit', async (e) => 
       document.getElementById('removeImageFlag').value = '0';
       document.getElementById('imagePreview').classList.add('hidden');
       addMore = false;
+      syncTypeFromSection();
       toggleOptionsBlock();
       const btn = document.querySelector('[type="submit"]');
       const orig = btn.textContent;
@@ -329,6 +346,11 @@ function toggleOptionsBlock() {
 }
 
 document.getElementById('qType').addEventListener('change', toggleOptionsBlock);
+
+// On page load: auto-set question type from section (for new questions only)
+if (!questionId) {
+  syncTypeFromSection();
+}
 toggleOptionsBlock();
 </script>
 
