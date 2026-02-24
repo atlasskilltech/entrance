@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcryptjs');
 const db = require('../config/database');
 
 // Student login page
@@ -12,22 +11,17 @@ router.get('/login', (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const application_id = (req.body.application_id || '').trim();
-    const password = req.body.password || '';
 
-    if (!application_id || !password) {
-      return res.render('login', { error: 'Please provide Application ID and password' });
+    if (!application_id) {
+      return res.render('login', { error: 'Please provide Application ID' });
     }
 
     const [rows] = await db.query('SELECT * FROM ent_students WHERE application_id = ?', [application_id]);
     if (rows.length === 0) {
-      return res.render('login', { error: 'Invalid Application ID or password' });
+      return res.render('login', { error: 'Invalid Application ID' });
     }
 
     const student = rows[0];
-    const isMatch = await bcrypt.compare(password, student.password);
-    if (!isMatch) {
-      return res.render('login', { error: 'Invalid Application ID or password' });
-    }
 
     req.session.studentId = student.id;
     req.session.studentName = student.name;
@@ -54,22 +48,17 @@ router.get('/admin/login', (req, res) => {
 router.post('/admin/login', async (req, res) => {
   try {
     const username = (req.body.username || '').trim();
-    const password = req.body.password || '';
 
-    if (!username || !password) {
-      return res.render('admin/login', { error: 'Please provide username and password' });
+    if (!username) {
+      return res.render('admin/login', { error: 'Please provide username' });
     }
 
     const [rows] = await db.query('SELECT * FROM ent_admins WHERE username = ?', [username]);
     if (rows.length === 0) {
-      return res.render('admin/login', { error: 'Invalid username or password' });
+      return res.render('admin/login', { error: 'Invalid username' });
     }
 
     const admin = rows[0];
-    const isMatch = await bcrypt.compare(password, admin.password);
-    if (!isMatch) {
-      return res.render('admin/login', { error: 'Invalid username or password' });
-    }
 
     req.session.adminId = admin.id;
     req.session.adminName = admin.name;
