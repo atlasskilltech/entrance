@@ -143,8 +143,13 @@
       <div class="p-3 border-b">
         <div class="bg-gray-900 rounded-lg overflow-hidden relative" style="height: 120px">
           <video id="proctorCam" autoplay playsinline muted class="w-full h-full object-cover"></video>
+          <canvas id="faceDetectCanvas" class="hidden"></canvas>
           <div class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full pulse"></div>
           <div class="absolute bottom-1 left-1 text-xs text-white bg-black/50 px-1.5 py-0.5 rounded">LIVE</div>
+          <!-- Face warning overlay -->
+          <div id="faceWarningBanner" class="hidden absolute inset-0 bg-red-600/80 flex items-center justify-center">
+            <p id="faceWarningText" class="text-white text-xs font-bold text-center px-2"></p>
+          </div>
         </div>
       </div>
 
@@ -204,6 +209,14 @@
           <div class="flex justify-between items-center">
             <span class="text-gray-500">Paste</span>
             <span class="font-medium violation-count" id="vPaste" data-count="<%= violationMap.paste || 0 %>"><%= violationMap.paste || 0 %></span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-gray-500">Face Not Visible</span>
+            <span class="font-medium violation-count" id="vFaceNotVisible" data-count="<%= violationMap.face_not_visible || 0 %>"><%= violationMap.face_not_visible || 0 %></span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-gray-500">Multiple Faces</span>
+            <span class="font-medium violation-count" id="vMultipleFaces" data-count="<%= violationMap.multiple_faces || 0 %>"><%= violationMap.multiple_faces || 0 %></span>
           </div>
           <div class="flex justify-between items-center">
             <span class="text-gray-500">Other Alerts</span>
@@ -650,12 +663,154 @@ function autoSaveSummary() {
 
 // ==================== PROCTORING ====================
 let totalViolations = 0;
+let faceDetector = null;
+let faceCheckInterval = null;
+let lastFaceWarningType = null; // track current warning to avoid spamming violations
+let faceWarningStartTime = null; // when the current warning began
+const FACE_CHECK_INTERVAL = 2000; // check every 2 seconds
+const FACE_VIOLATION_DELAY = 4000; // log violation after 4 seconds of continuous issue
 
-// Initialize webcam for proctoring
+// Skin tone detection using YCbCr color space - works across all skin tones
+function isSkinPixel(r, g, b) {
+  const y  = 0.299 * r + 0.587 * g + 0.114 * b;
+  const cb = 128 - 0.169 * r - 0.331 * g + 0.500 * b;
+  const cr = 128 + 0.500 * r - 0.419 * g - 0.081 * b;
+  return y > 60 && cb > 77 && cb < 127 && cr > 133 && cr < 173;
+}
+
+// Analyze canvas for face presence using skin tone detection
+function detectSkinInFrame(canvas) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+  if (w === 0 || h === 0) return { hasFace: false, skinRatio: 0 };
+
+  const imageData = ctx.getImageData(0, 0, w, h);
+  const data = imageData.data;
+
+  // Check center region of frame where face should be
+  const centerX = w / 2;
+  const centerY = h * 0.45;
+  const regionW = w * 0.5;
+  const regionH = h * 0.7;
+
+  let skinPixels = 0;
+  let totalPixels = 0;
+
+  const step = 4;
+  const startY = Math.max(0, Math.floor(centerY - regionH / 2));
+  const endY = Math.min(h, Math.floor(centerY + regionH / 2));
+  const startX = Math.max(0, Math.floor(centerX - regionW / 2));
+  const endX = Math.min(w, Math.floor(centerX + regionW / 2));
+
+  for (let py = startY; py < endY; py += step) {
+    for (let px = startX; px < endX; px += step) {
+      const idx = (py * w + px) * 4;
+      totalPixels++;
+      if (isSkinPixel(data[idx], data[idx + 1], data[idx + 2])) skinPixels++;
+    }
+  }
+
+  const skinRatio = totalPixels > 0 ? skinPixels / totalPixels : 0;
+  return { hasFace: skinRatio >= 0.12, skinRatio };
+}
+
+// Run face check on current video frame
+async function checkFaceInFrame() {
+  const video = document.getElementById('proctorCam');
+  if (!video || video.readyState < 2) return;
+
+  const canvas = document.getElementById('faceDetectCanvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+
+  const banner = document.getElementById('faceWarningBanner');
+  const bannerText = document.getElementById('faceWarningText');
+
+  // Try browser FaceDetector API first (more accurate)
+  if (faceDetector) {
+    try {
+      const faces = await faceDetector.detect(canvas);
+      if (faces.length === 0) {
+        showFaceWarning('no_face', 'NO FACE DETECTED!\nPlease stay visible in the camera.');
+        return;
+      }
+      if (faces.length > 1) {
+        showFaceWarning('multiple_faces', 'MULTIPLE FACES DETECTED!\nOnly the exam taker should be visible.');
+        return;
+      }
+      // Single face detected - all good
+      clearFaceWarning();
+      return;
+    } catch (e) {
+      // FaceDetector failed, fall through to skin detection
+    }
+  }
+
+  // Fallback: skin tone detection
+  const result = detectSkinInFrame(canvas);
+  if (!result.hasFace) {
+    showFaceWarning('no_face', 'NO FACE DETECTED!\nPlease stay visible in the camera.');
+  } else {
+    clearFaceWarning();
+  }
+}
+
+function showFaceWarning(type, message) {
+  const banner = document.getElementById('faceWarningBanner');
+  const bannerText = document.getElementById('faceWarningText');
+
+  banner.classList.remove('hidden');
+  bannerText.textContent = message;
+
+  if (lastFaceWarningType === type) {
+    // Same warning continuing - check if enough time has passed to log violation
+    if (faceWarningStartTime && (Date.now() - faceWarningStartTime >= FACE_VIOLATION_DELAY)) {
+      const violationType = type === 'multiple_faces' ? 'multiple_faces' : 'face_not_visible';
+      logViolation(violationType, type === 'multiple_faces'
+        ? 'Multiple faces detected during exam'
+        : 'Student face not visible in camera');
+      showWarning(
+        type === 'multiple_faces' ? 'Multiple Faces Detected' : 'Face Not Visible',
+        type === 'multiple_faces'
+          ? 'More than one person was detected in the camera. Only the exam taker should be visible. This has been recorded as a violation.'
+          : 'Your face is not visible in the camera. Please make sure you are properly positioned in front of the camera. This has been recorded as a violation.'
+      );
+      // Reset timer so next violation requires another sustained period
+      faceWarningStartTime = Date.now();
+    }
+  } else {
+    // New warning type - start tracking
+    lastFaceWarningType = type;
+    faceWarningStartTime = Date.now();
+  }
+}
+
+function clearFaceWarning() {
+  const banner = document.getElementById('faceWarningBanner');
+  banner.classList.add('hidden');
+  lastFaceWarningType = null;
+  faceWarningStartTime = null;
+}
+
+// Initialize webcam for proctoring with face detection
 (async function initProctoring() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
     document.getElementById('proctorCam').srcObject = stream;
+
+    // Initialize FaceDetector if available
+    if (window.FaceDetector) {
+      faceDetector = new FaceDetector({ fastMode: true, maxDetectedFaces: 5 });
+    }
+
+    // Start continuous face monitoring after video is ready
+    const video = document.getElementById('proctorCam');
+    video.addEventListener('loadeddata', () => {
+      faceCheckInterval = setInterval(checkFaceInFrame, FACE_CHECK_INTERVAL);
+    });
   } catch (err) {
     console.error('Proctor cam error:', err);
   }
@@ -732,7 +887,7 @@ function logViolation(type, details) {
   fetch('/api/log-violation', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type, details, severity: type === 'tab_switch' ? 'high' : 'medium' })
+    body: JSON.stringify({ type, details, severity: (type === 'tab_switch' || type === 'multiple_faces' || type === 'face_not_visible') ? 'high' : 'medium' })
   }).then(r => r.json()).then(data => {
     if (data.success) {
       totalViolations = data.totalViolations;
@@ -754,7 +909,9 @@ function updateViolationDisplay(type) {
   const mapping = {
     'tab_switch': 'vTabSwitch',
     'copy': 'vCopy',
-    'paste': 'vPaste'
+    'paste': 'vPaste',
+    'face_not_visible': 'vFaceNotVisible',
+    'multiple_faces': 'vMultipleFaces'
   };
 
   const id = mapping[type] || 'vOther';
