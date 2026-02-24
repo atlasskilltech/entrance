@@ -11,31 +11,22 @@ router.get('/login', (req, res) => {
 // Student login POST
 router.post('/login', async (req, res) => {
   try {
-    const { application_id, password, mobile } = req.body;
+    const application_id = (req.body.application_id || '').trim();
+    const password = req.body.password || '';
 
-    let query, params;
-    if (application_id && password) {
-      query = 'SELECT * FROM ent_students WHERE application_id = ?';
-      params = [application_id];
-    } else if (mobile) {
-      query = 'SELECT * FROM ent_students WHERE mobile = ?';
-      params = [mobile];
-    } else {
-      return res.render('login', { error: 'Please provide valid credentials' });
+    if (!application_id || !password) {
+      return res.render('login', { error: 'Please provide Application ID and password' });
     }
 
-    const [rows] = await db.query(query, params);
+    const [rows] = await db.query('SELECT * FROM ent_students WHERE application_id = ?', [application_id]);
     if (rows.length === 0) {
-      return res.render('login', { error: 'Invalid credentials' });
+      return res.render('login', { error: 'Invalid Application ID or password' });
     }
 
     const student = rows[0];
-
-    if (password) {
-      const isMatch = await bcrypt.compare(password, student.password);
-      if (!isMatch) {
-        return res.render('login', { error: 'Invalid password' });
-      }
+    const isMatch = await bcrypt.compare(password, student.password);
+    if (!isMatch) {
+      return res.render('login', { error: 'Invalid Application ID or password' });
     }
 
     req.session.studentId = student.id;
@@ -62,17 +53,22 @@ router.get('/admin/login', (req, res) => {
 // Admin login POST
 router.post('/admin/login', async (req, res) => {
   try {
-    const { username, password } = req.body;
-    const [rows] = await db.query('SELECT * FROM ent_admins WHERE username = ?', [username]);
+    const username = (req.body.username || '').trim();
+    const password = req.body.password || '';
 
+    if (!username || !password) {
+      return res.render('admin/login', { error: 'Please provide username and password' });
+    }
+
+    const [rows] = await db.query('SELECT * FROM ent_admins WHERE username = ?', [username]);
     if (rows.length === 0) {
-      return res.render('admin/login', { error: 'Invalid credentials' });
+      return res.render('admin/login', { error: 'Invalid username or password' });
     }
 
     const admin = rows[0];
     const isMatch = await bcrypt.compare(password, admin.password);
     if (!isMatch) {
-      return res.render('admin/login', { error: 'Invalid password' });
+      return res.render('admin/login', { error: 'Invalid username or password' });
     }
 
     req.session.adminId = admin.id;
