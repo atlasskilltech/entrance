@@ -47,6 +47,12 @@
           <canvas id="waveform" width="300" height="60" class="w-full"></canvas>
         </div>
 
+        <!-- Live speech-to-text display -->
+        <div id="speechTextBox" class="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-3 min-h-[48px] hidden">
+          <p class="text-xs text-gray-400 mb-1">You said:</p>
+          <p id="speechText" class="text-sm text-gray-800 font-medium"></p>
+        </div>
+
         <div class="flex space-x-2">
           <button id="startRecordBtn" onclick="startRecording()"
                   class="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition cursor-pointer">
@@ -77,11 +83,22 @@
         </div>
 
         <div class="relative bg-gray-900 rounded-lg overflow-hidden mb-3" style="height: 200px">
-          <video id="webcam" autoplay playsinline muted class="w-full h-full object-cover"></video>
+          <video id="webcam" autoplay playsinline muted class="w-full h-full object-cover" style="transform: scaleX(-1);"></video>
           <canvas id="photoCanvas" class="hidden"></canvas>
           <img id="capturedPhoto" class="hidden w-full h-full object-cover">
-          <div id="faceOverlay" class="absolute inset-0 flex items-center justify-center">
-            <div class="w-32 h-40 border-2 border-dashed border-white/50 rounded-2xl"></div>
+          <div id="faceOverlay" class="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <!-- Dark mask around the face oval -->
+            <svg class="absolute inset-0 w-full h-full" viewBox="0 0 400 200" preserveAspectRatio="none">
+              <defs>
+                <mask id="faceMask">
+                  <rect width="400" height="200" fill="white"/>
+                  <ellipse cx="200" cy="95" rx="65" ry="80" fill="black"/>
+                </mask>
+              </defs>
+              <rect width="400" height="200" fill="rgba(0,0,0,0.4)" mask="url(#faceMask)"/>
+              <ellipse cx="200" cy="95" rx="65" ry="80" fill="none" stroke="white" stroke-width="2" stroke-dasharray="6,4" opacity="0.7"/>
+            </svg>
+            <p class="absolute bottom-2 text-white/70 text-xs font-medium">Align your face in the oval</p>
           </div>
         </div>
 
@@ -94,7 +111,7 @@
             Retake
           </button>
         </div>
-        <div id="photoStatus" class="mt-2 text-sm text-center text-gray-400">Position your face in the frame</div>
+        <div id="photoStatus" class="mt-2 text-sm text-center text-gray-400">Align your face in the oval and take photo</div>
       </div>
     </div>
 
@@ -116,11 +133,15 @@ let mediaRecorder = null;
 let audioChunks = [];
 let micDone = false, photoDone = false;
 let audioContext, analyser, dataArray;
+let speechRecognition = null;
 
 // Initialize webcam
 async function initWebcam() {
   try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    mediaStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+      audio: true
+    });
     document.getElementById('webcam').srcObject = mediaStream;
 
     // Setup audio analyser for waveform
@@ -135,6 +156,44 @@ async function initWebcam() {
   }
 }
 initWebcam();
+
+// Setup speech recognition
+function initSpeechRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return null;
+
+  const recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = 'en-IN';
+
+  recognition.onresult = (event) => {
+    let finalTranscript = '';
+    let interimTranscript = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const transcript = event.results[i][0].transcript;
+      if (event.results[i].isFinal) {
+        finalTranscript += transcript;
+      } else {
+        interimTranscript += transcript;
+      }
+    }
+    const speechBox = document.getElementById('speechTextBox');
+    const speechText = document.getElementById('speechText');
+    speechBox.classList.remove('hidden');
+    const displayText = finalTranscript || interimTranscript;
+    if (displayText) {
+      speechText.innerHTML = `<span class="text-gray-800">${finalTranscript}</span><span class="text-gray-400">${interimTranscript}</span>`;
+    }
+  };
+
+  recognition.onerror = () => {}; // Silently ignore errors
+  recognition.onend = () => {
+    // Don't restart if recording has stopped
+  };
+
+  return recognition;
+}
 
 // Audio waveform visualization
 function drawWaveform() {
@@ -167,6 +226,13 @@ function startRecording() {
     checkReady();
   };
   mediaRecorder.start();
+
+  // Start speech recognition
+  speechRecognition = initSpeechRecognition();
+  if (speechRecognition) {
+    try { speechRecognition.start(); } catch (e) {}
+  }
+
   document.getElementById('startRecordBtn').disabled = true;
   document.getElementById('startRecordBtn').className = 'flex-1 px-4 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed';
   document.getElementById('stopRecordBtn').disabled = false;
@@ -179,6 +245,10 @@ function stopRecording() {
   if (mediaRecorder && mediaRecorder.state !== 'inactive') {
     mediaRecorder.stop();
   }
+  // Stop speech recognition
+  if (speechRecognition) {
+    try { speechRecognition.stop(); } catch (e) {}
+  }
   document.getElementById('stopRecordBtn').disabled = true;
   document.getElementById('stopRecordBtn').className = 'flex-1 px-4 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed';
 }
@@ -189,7 +259,11 @@ function takePhoto() {
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
   const ctx = canvas.getContext('2d');
+  // Mirror the photo to match the mirrored video preview
+  ctx.translate(canvas.width, 0);
+  ctx.scale(-1, 1);
   ctx.drawImage(video, 0, 0);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
 
   const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
   document.getElementById('capturedPhoto').src = dataUrl;
@@ -210,7 +284,7 @@ function retakePhoto() {
   document.getElementById('faceOverlay').classList.remove('hidden');
   document.getElementById('takePhotoBtn').classList.remove('hidden');
   document.getElementById('retakePhotoBtn').classList.add('hidden');
-  document.getElementById('photoStatus').textContent = 'Position your face in the frame';
+  document.getElementById('photoStatus').textContent = 'Align your face in the oval and take photo';
   document.getElementById('photoStatus').className = 'mt-2 text-sm text-center text-gray-400';
   photoDone = false;
   checkReady();
