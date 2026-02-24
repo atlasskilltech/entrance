@@ -659,7 +659,7 @@ router.get('/admin/exams/:examId/assignments', isAdminAuthenticated, async (req,
   }
 });
 
-// Assign students to exam
+// Assign students to exam (and send invitation emails)
 router.post('/admin/exams/:examId/assign', isAdminAuthenticated, async (req, res) => {
   try {
     const { student_ids } = req.body;
@@ -667,20 +667,72 @@ router.post('/admin/exams/:examId/assign', isAdminAuthenticated, async (req, res
       return res.json({ success: false, error: 'No students selected' });
     }
 
+    // Fetch exam details for the email
+    const [exams] = await db.query('SELECT * FROM ent_exams WHERE id = ?', [req.params.examId]);
+    if (exams.length === 0) return res.json({ success: false, error: 'Exam not found' });
+    const exam = exams[0];
+
     let assignedCount = 0;
+    let emailSentCount = 0;
+    let emailFailedCount = 0;
+    const emailErrors = [];
+
     for (const studentId of student_ids) {
       try {
-        await db.query(
+        const [result] = await db.query(
           'INSERT IGNORE INTO ent_exam_assignments (student_id, exam_id, assigned_by) VALUES (?, ?, ?)',
           [studentId, req.params.examId, req.session.adminId]
         );
+
+        if (result.affectedRows === 0) continue; // Already assigned, skip
         assignedCount++;
+
+        // Fetch student details for the email
+        const [students] = await db.query(
+          'SELECT * FROM ent_students WHERE id = ? AND email IS NOT NULL AND email != ""',
+          [studentId]
+        );
+
+        if (students.length === 0) continue; // No email, skip
+        const student = students[0];
+
+        try {
+          // Generate unique token (expires in 72 hours)
+          const token = uuidv4();
+          const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+
+          await db.query(
+            'INSERT INTO ent_login_tokens (student_id, token, exam_id, expires_at) VALUES (?, ?, ?, ?)',
+            [student.id, token, req.params.examId, expiresAt]
+          );
+
+          // Send invitation email
+          await sendExamInvitation(student, exam, token);
+
+          // Mark email as sent on the assignment
+          await db.query(
+            'UPDATE ent_exam_assignments SET email_sent = 1, email_sent_at = NOW() WHERE student_id = ? AND exam_id = ?',
+            [studentId, req.params.examId]
+          );
+
+          emailSentCount++;
+        } catch (emailErr) {
+          console.error(`Failed to send email to ${student.email}:`, emailErr.message);
+          emailFailedCount++;
+          emailErrors.push(`${student.name} (${student.email}): ${emailErr.message}`);
+        }
       } catch (e) {
         // Skip duplicates
       }
     }
 
-    res.json({ success: true, assignedCount });
+    res.json({
+      success: true,
+      assignedCount,
+      emailSentCount,
+      emailFailedCount,
+      emailErrors: emailErrors.length > 0 ? emailErrors : undefined
+    });
   } catch (err) {
     console.error(err);
     res.json({ success: false, error: 'Failed to assign students' });
