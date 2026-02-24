@@ -53,6 +53,9 @@
           <p id="speechText" class="text-sm text-gray-800 font-medium"></p>
         </div>
 
+        <!-- Speech match result -->
+        <div id="speechMatchBox" class="hidden rounded-lg p-3 mb-3 text-sm font-medium text-center"></div>
+
         <div class="flex space-x-2">
           <button id="startRecordBtn" onclick="startRecording()"
                   class="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition cursor-pointer">
@@ -85,6 +88,7 @@
         <div class="relative bg-gray-900 rounded-lg overflow-hidden mb-3" style="height: 200px">
           <video id="webcam" autoplay playsinline muted class="w-full h-full object-cover" style="transform: scaleX(-1);"></video>
           <canvas id="photoCanvas" class="hidden"></canvas>
+          <canvas id="faceDetectCanvas" class="hidden"></canvas>
           <img id="capturedPhoto" class="hidden w-full h-full object-cover">
           <div id="faceOverlay" class="absolute inset-0 flex items-center justify-center pointer-events-none">
             <!-- Dark mask around the face oval -->
@@ -96,22 +100,22 @@
                 </mask>
               </defs>
               <rect width="400" height="200" fill="rgba(0,0,0,0.4)" mask="url(#faceMask)"/>
-              <ellipse cx="200" cy="95" rx="65" ry="80" fill="none" stroke="white" stroke-width="2" stroke-dasharray="6,4" opacity="0.7"/>
+              <ellipse id="faceOvalStroke" cx="200" cy="95" rx="65" ry="80" fill="none" stroke="white" stroke-width="2" stroke-dasharray="6,4" opacity="0.7"/>
             </svg>
-            <p class="absolute bottom-2 text-white/70 text-xs font-medium">Align your face in the oval</p>
+            <p id="faceGuideText" class="absolute bottom-2 text-white/70 text-xs font-medium">Align your face in the oval</p>
           </div>
         </div>
 
         <div class="flex space-x-2">
-          <button id="takePhotoBtn" onclick="takePhoto()"
-                  class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition cursor-pointer">
+          <button id="takePhotoBtn" onclick="takePhoto()" disabled
+                  class="flex-1 px-4 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed">
             Take Photo
           </button>
           <button id="retakePhotoBtn" onclick="retakePhoto()" class="hidden flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300 transition cursor-pointer">
             Retake
           </button>
         </div>
-        <div id="photoStatus" class="mt-2 text-sm text-center text-gray-400">Align your face in the oval and take photo</div>
+        <div id="photoStatus" class="mt-2 text-sm text-center text-gray-400">Align your face in the oval to enable capture</div>
       </div>
     </div>
 
@@ -134,6 +138,33 @@ let audioChunks = [];
 let micDone = false, photoDone = false;
 let audioContext, analyser, dataArray;
 let speechRecognition = null;
+let fullTranscript = '';
+let faceDetector = null;
+let faceDetectionLoop = null;
+let faceIsCentered = false;
+
+// Expected text for speech validation
+const expectedText = "hi i am <%= studentName.replace(/'/g, "\\'") %> and i am ready for this test";
+
+// Normalize text for comparison: lowercase, remove punctuation, collapse spaces
+function normalize(text) {
+  return text.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+// Check how well spoken text matches expected text
+function checkSpeechMatch(spoken) {
+  const spokenNorm = normalize(spoken);
+  const expectedNorm = normalize(expectedText);
+  const expectedWords = expectedNorm.split(' ');
+  const spokenWords = spokenNorm.split(' ');
+
+  // Count how many expected words appear in spoken text
+  let matched = 0;
+  for (const word of expectedWords) {
+    if (spokenWords.includes(word)) matched++;
+  }
+  return matched / expectedWords.length;
+}
 
 // Initialize webcam
 async function initWebcam() {
@@ -151,13 +182,124 @@ async function initWebcam() {
     analyser.fftSize = 256;
     source.connect(analyser);
     dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+    // Initialize face detection
+    initFaceDetection();
   } catch (err) {
     console.error('Media access error:', err);
   }
 }
 initWebcam();
 
-// Setup speech recognition
+// ==================== FACE DETECTION ====================
+
+function initFaceDetection() {
+  if (window.FaceDetector) {
+    faceDetector = new FaceDetector({ fastMode: true, maxDetectedFaces: 5 });
+    startFaceDetectionLoop();
+  }
+}
+
+async function detectFaces() {
+  if (!faceDetector) return;
+  const video = document.getElementById('webcam');
+  if (video.readyState < 2) return; // Video not ready
+
+  try {
+    const faces = await faceDetector.detect(video);
+    const oval = document.getElementById('faceOvalStroke');
+    const guideText = document.getElementById('faceGuideText');
+    const takeBtn = document.getElementById('takePhotoBtn');
+
+    if (faces.length === 0) {
+      // No face detected
+      faceIsCentered = false;
+      oval.setAttribute('stroke', '#ef4444');
+      oval.setAttribute('stroke-dasharray', '6,4');
+      guideText.textContent = 'No face detected';
+      guideText.className = 'absolute bottom-2 text-red-400 text-xs font-medium';
+      takeBtn.disabled = true;
+      takeBtn.className = 'flex-1 px-4 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed';
+      return;
+    }
+
+    if (faces.length > 1) {
+      // Multiple faces
+      faceIsCentered = false;
+      oval.setAttribute('stroke', '#ef4444');
+      oval.setAttribute('stroke-dasharray', '6,4');
+      guideText.textContent = 'Only one face allowed';
+      guideText.className = 'absolute bottom-2 text-red-400 text-xs font-medium';
+      takeBtn.disabled = true;
+      takeBtn.className = 'flex-1 px-4 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed';
+      return;
+    }
+
+    // Single face - check centering
+    const face = faces[0].boundingBox;
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+
+    // Face center position (as fraction of video dimensions)
+    const faceCenterX = (face.x + face.width / 2) / vw;
+    const faceCenterY = (face.y + face.height / 2) / vh;
+
+    // Face size relative to video
+    const faceRelW = face.width / vw;
+    const faceRelH = face.height / vh;
+
+    // Centered: face center should be near 0.5, 0.45 (slightly above center)
+    const xOk = Math.abs(faceCenterX - 0.5) < 0.15;
+    const yOk = Math.abs(faceCenterY - 0.45) < 0.18;
+    // Face size: not too small, not too large
+    const sizeOk = faceRelW > 0.15 && faceRelW < 0.65 && faceRelH > 0.2 && faceRelH < 0.8;
+
+    if (xOk && yOk && sizeOk) {
+      // Face centered
+      faceIsCentered = true;
+      oval.setAttribute('stroke', '#22c55e');
+      oval.setAttribute('stroke-dasharray', 'none');
+      guideText.textContent = 'Face aligned - ready to capture';
+      guideText.className = 'absolute bottom-2 text-green-400 text-xs font-medium';
+      takeBtn.disabled = false;
+      takeBtn.className = 'flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition cursor-pointer';
+    } else {
+      // Face detected but not centered
+      faceIsCentered = false;
+      oval.setAttribute('stroke', '#f59e0b');
+      oval.setAttribute('stroke-dasharray', '6,4');
+      let hint = 'Move your face ';
+      if (!xOk) hint += faceCenterX < 0.5 ? 'right ' : 'left ';
+      if (!yOk) hint += faceCenterY < 0.45 ? 'down ' : 'up ';
+      if (!sizeOk) hint = faceRelW < 0.15 ? 'Move closer' : 'Move back';
+      guideText.textContent = hint.trim();
+      guideText.className = 'absolute bottom-2 text-yellow-400 text-xs font-medium';
+      takeBtn.disabled = true;
+      takeBtn.className = 'flex-1 px-4 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed';
+    }
+  } catch (err) {
+    // FaceDetector error - gracefully allow capture
+    faceIsCentered = true;
+    const takeBtn = document.getElementById('takePhotoBtn');
+    takeBtn.disabled = false;
+    takeBtn.className = 'flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition cursor-pointer';
+  }
+}
+
+function startFaceDetectionLoop() {
+  if (faceDetectionLoop) return;
+  faceDetectionLoop = setInterval(detectFaces, 500);
+}
+
+function stopFaceDetectionLoop() {
+  if (faceDetectionLoop) {
+    clearInterval(faceDetectionLoop);
+    faceDetectionLoop = null;
+  }
+}
+
+// ==================== SPEECH RECOGNITION ====================
+
 function initSpeechRecognition() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) return null;
@@ -170,7 +312,7 @@ function initSpeechRecognition() {
   recognition.onresult = (event) => {
     let finalTranscript = '';
     let interimTranscript = '';
-    for (let i = event.resultIndex; i < event.results.length; i++) {
+    for (let i = 0; i < event.results.length; i++) {
       const transcript = event.results[i][0].transcript;
       if (event.results[i].isFinal) {
         finalTranscript += transcript;
@@ -178,24 +320,24 @@ function initSpeechRecognition() {
         interimTranscript += transcript;
       }
     }
+    fullTranscript = finalTranscript || interimTranscript;
+
     const speechBox = document.getElementById('speechTextBox');
     const speechText = document.getElementById('speechText');
     speechBox.classList.remove('hidden');
-    const displayText = finalTranscript || interimTranscript;
-    if (displayText) {
+    if (fullTranscript) {
       speechText.innerHTML = `<span class="text-gray-800">${finalTranscript}</span><span class="text-gray-400">${interimTranscript}</span>`;
     }
   };
 
-  recognition.onerror = () => {}; // Silently ignore errors
-  recognition.onend = () => {
-    // Don't restart if recording has stopped
-  };
+  recognition.onerror = () => {};
+  recognition.onend = () => {};
 
   return recognition;
 }
 
-// Audio waveform visualization
+// ==================== WAVEFORM ====================
+
 function drawWaveform() {
   if (!analyser) return;
   const canvas = document.getElementById('waveform');
@@ -215,15 +357,23 @@ function drawWaveform() {
 }
 drawWaveform();
 
+// ==================== RECORDING ====================
+
 function startRecording() {
   audioChunks = [];
+  fullTranscript = '';
+  micDone = false;
+
+  // Reset speech UI
+  document.getElementById('speechTextBox').classList.add('hidden');
+  document.getElementById('speechText').textContent = '';
+  document.getElementById('speechMatchBox').classList.add('hidden');
+
   mediaRecorder = new MediaRecorder(mediaStream);
   mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
   mediaRecorder.onstop = () => {
-    micDone = true;
-    document.getElementById('micStatus').textContent = 'Audio recorded successfully!';
-    document.getElementById('micStatus').className = 'mt-2 text-sm text-center text-green-600 font-medium';
-    checkReady();
+    // Validate speech after stopping
+    validateSpeech();
   };
   mediaRecorder.start();
 
@@ -237,7 +387,7 @@ function startRecording() {
   document.getElementById('startRecordBtn').className = 'flex-1 px-4 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed';
   document.getElementById('stopRecordBtn').disabled = false;
   document.getElementById('stopRecordBtn').className = 'flex-1 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition cursor-pointer';
-  document.getElementById('micStatus').textContent = 'Recording... Speak now';
+  document.getElementById('micStatus').textContent = 'Recording... Speak the text above clearly';
   document.getElementById('micStatus').className = 'mt-2 text-sm text-center text-red-500 font-medium pulse';
 }
 
@@ -245,7 +395,6 @@ function stopRecording() {
   if (mediaRecorder && mediaRecorder.state !== 'inactive') {
     mediaRecorder.stop();
   }
-  // Stop speech recognition
   if (speechRecognition) {
     try { speechRecognition.stop(); } catch (e) {}
   }
@@ -253,7 +402,55 @@ function stopRecording() {
   document.getElementById('stopRecordBtn').className = 'flex-1 px-4 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed';
 }
 
-function takePhoto() {
+function validateSpeech() {
+  const matchBox = document.getElementById('speechMatchBox');
+  matchBox.classList.remove('hidden');
+
+  if (!fullTranscript || fullTranscript.trim().length === 0) {
+    // No speech detected
+    micDone = false;
+    matchBox.className = 'rounded-lg p-3 mb-3 text-sm font-medium text-center bg-red-50 border border-red-200 text-red-700';
+    matchBox.textContent = 'No speech detected. Please try again.';
+    document.getElementById('micStatus').textContent = 'Speech not detected - try again';
+    document.getElementById('micStatus').className = 'mt-2 text-sm text-center text-red-500 font-medium';
+    enableRetryRecording();
+    checkReady();
+    return;
+  }
+
+  const matchScore = checkSpeechMatch(fullTranscript);
+  const matchPercent = Math.round(matchScore * 100);
+
+  if (matchScore >= 0.6) {
+    // Good match
+    micDone = true;
+    matchBox.className = 'rounded-lg p-3 mb-3 text-sm font-medium text-center bg-green-50 border border-green-200 text-green-700';
+    matchBox.innerHTML = `Speech verified (${matchPercent}% match)`;
+    document.getElementById('micStatus').textContent = 'Voice verification passed!';
+    document.getElementById('micStatus').className = 'mt-2 text-sm text-center text-green-600 font-medium';
+  } else {
+    // Poor match
+    micDone = false;
+    matchBox.className = 'rounded-lg p-3 mb-3 text-sm font-medium text-center bg-red-50 border border-red-200 text-red-700';
+    matchBox.innerHTML = `Speech did not match (${matchPercent}% match). Please read the exact text and try again.`;
+    document.getElementById('micStatus').textContent = 'Text did not match - try again';
+    document.getElementById('micStatus').className = 'mt-2 text-sm text-center text-red-500 font-medium';
+    enableRetryRecording();
+  }
+  checkReady();
+}
+
+function enableRetryRecording() {
+  document.getElementById('startRecordBtn').disabled = false;
+  document.getElementById('startRecordBtn').className = 'flex-1 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition cursor-pointer';
+  document.getElementById('startRecordBtn').textContent = 'Try Again';
+}
+
+// ==================== PHOTO CAPTURE ====================
+
+async function takePhoto() {
+  if (!faceIsCentered && faceDetector) return;
+
   const video = document.getElementById('webcam');
   const canvas = document.getElementById('photoCanvas');
   canvas.width = video.videoWidth;
@@ -265,6 +462,20 @@ function takePhoto() {
   ctx.drawImage(video, 0, 0);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 
+  // Verify face one final time on captured frame
+  if (faceDetector) {
+    try {
+      const faces = await faceDetector.detect(canvas);
+      if (faces.length !== 1) {
+        document.getElementById('photoStatus').textContent = faces.length === 0 ? 'No face detected in photo. Try again.' : 'Multiple faces detected. Only one person allowed.';
+        document.getElementById('photoStatus').className = 'mt-2 text-sm text-center text-red-500 font-medium';
+        return;
+      }
+    } catch (e) {}
+  }
+
+  stopFaceDetectionLoop();
+
   const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
   document.getElementById('capturedPhoto').src = dataUrl;
   document.getElementById('capturedPhoto').classList.remove('hidden');
@@ -272,7 +483,7 @@ function takePhoto() {
   document.getElementById('faceOverlay').classList.add('hidden');
   document.getElementById('takePhotoBtn').classList.add('hidden');
   document.getElementById('retakePhotoBtn').classList.remove('hidden');
-  document.getElementById('photoStatus').textContent = 'Photo captured! Face detected.';
+  document.getElementById('photoStatus').textContent = 'Face captured and verified!';
   document.getElementById('photoStatus').className = 'mt-2 text-sm text-center text-green-600 font-medium';
   photoDone = true;
   checkReady();
@@ -284,11 +495,15 @@ function retakePhoto() {
   document.getElementById('faceOverlay').classList.remove('hidden');
   document.getElementById('takePhotoBtn').classList.remove('hidden');
   document.getElementById('retakePhotoBtn').classList.add('hidden');
-  document.getElementById('photoStatus').textContent = 'Align your face in the oval and take photo';
+  document.getElementById('photoStatus').textContent = 'Align your face in the oval to enable capture';
   document.getElementById('photoStatus').className = 'mt-2 text-sm text-center text-gray-400';
   photoDone = false;
+  faceIsCentered = false;
+  startFaceDetectionLoop();
   checkReady();
 }
+
+// ==================== READY CHECK & PROCEED ====================
 
 function checkReady() {
   document.getElementById('continueBtn').disabled = !(micDone && photoDone);
@@ -299,7 +514,6 @@ async function proceedToRules() {
   btn.disabled = true;
   btn.textContent = 'Saving...';
 
-  // Convert captured photo to blob and upload
   const canvas = document.getElementById('photoCanvas');
   canvas.toBlob(async (blob) => {
     const formData = new FormData();
@@ -308,7 +522,7 @@ async function proceedToRules() {
     const res = await fetch('/exam/save-photo', { method: 'POST', body: formData });
     const data = await res.json();
     if (data.success) {
-      // Stop all media tracks
+      stopFaceDetectionLoop();
       if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
       window.location.href = data.redirect;
     } else {
