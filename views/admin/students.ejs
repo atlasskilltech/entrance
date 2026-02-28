@@ -194,31 +194,43 @@ document.getElementById('studentForm').addEventListener('submit', async (e) => {
 // ===== Reassign Test =====
 let reassignStudentId = null;
 let reassignStudentName = '';
+const reassignExamData = {};
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
 
 async function openReassignModal(studentId, studentName) {
   reassignStudentId = studentId;
   reassignStudentName = studentName;
   document.getElementById('reassignStudentName').textContent = studentName;
-  document.getElementById('reassignSessionsList').innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">Loading sessions...</td></tr>';
+  const tbody = document.getElementById('reassignSessionsList');
+  tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-400">Loading sessions...</td></tr>';
   document.getElementById('reassignModal').classList.remove('hidden');
 
   try {
-    const res = await fetch(`/admin/students/${studentId}/sessions`);
+    const res = await fetch('/admin/students/' + studentId + '/sessions');
     const data = await res.json();
     if (!data.success || data.sessions.length === 0) {
-      document.getElementById('reassignSessionsList').innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">No exam sessions found</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-400">No exam sessions found</td></tr>';
       return;
     }
 
     // Group sessions by exam (show only latest per exam)
     const examMap = {};
-    data.sessions.forEach(s => {
+    data.sessions.forEach(function(s) {
       if (!examMap[s.exam_id]) examMap[s.exam_id] = s;
     });
 
-    let html = '';
-    Object.values(examMap).forEach(s => {
-      const statusColors = {
+    // Clear and rebuild rows using DOM
+    tbody.innerHTML = '';
+    Object.values(examMap).forEach(function(s) {
+      // Store exam data for later use
+      reassignExamData[s.exam_id] = s.exam_title;
+
+      var statusColors = {
         submitted: 'bg-green-100 text-green-800',
         auto_submitted: 'bg-yellow-100 text-yellow-800',
         disqualified: 'bg-red-100 text-red-800',
@@ -227,25 +239,50 @@ async function openReassignModal(studentId, studentName) {
         av_verification: 'bg-gray-100 text-gray-600',
         rules: 'bg-gray-100 text-gray-600'
       };
-      const statusClass = statusColors[s.status] || 'bg-gray-100 text-gray-600';
-      const statusText = s.status.replace(/_/g, ' ');
-      const score = s.score !== null && s.score !== undefined ? s.score : '-';
-      const date = new Date(s.created_at).toLocaleDateString();
+      var statusClass = statusColors[s.status] || 'bg-gray-100 text-gray-600';
+      var statusText = s.status.replace(/_/g, ' ');
+      var score = (s.score !== null && s.score !== undefined) ? s.score : '-';
+      var date = new Date(s.created_at).toLocaleDateString();
 
-      html += '<tr class="hover:bg-gray-50">';
-      html += '<td class="px-4 py-3 font-medium text-sm">' + s.exam_title + '</td>';
-      html += '<td class="px-4 py-3"><span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium ' + statusClass + '">' + statusText + '</span></td>';
-      html += '<td class="px-4 py-3 text-sm text-gray-500">' + score + '</td>';
-      html += '<td class="px-4 py-3 text-sm text-gray-500">' + date + '</td>';
-      html += '<td class="px-4 py-3 text-right">';
-      html += '<button onclick="reassignTest(' + s.exam_id + ', \'' + s.exam_title.replace(/'/g, "\\'") + '\')" class="px-3 py-1.5 bg-orange-500 text-white rounded-lg text-xs font-medium hover:bg-orange-600 transition cursor-pointer">Reassign</button>';
-      html += '</td>';
-      html += '</tr>';
+      var tr = document.createElement('tr');
+      tr.className = 'hover:bg-gray-50';
+
+      var td1 = document.createElement('td');
+      td1.className = 'px-4 py-3 font-medium text-sm';
+      td1.textContent = s.exam_title;
+      tr.appendChild(td1);
+
+      var td2 = document.createElement('td');
+      td2.className = 'px-4 py-3';
+      td2.innerHTML = '<span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium ' + statusClass + '">' + escapeHtml(statusText) + '</span>';
+      tr.appendChild(td2);
+
+      var td3 = document.createElement('td');
+      td3.className = 'px-4 py-3 text-sm text-gray-500';
+      td3.textContent = score;
+      tr.appendChild(td3);
+
+      var td4 = document.createElement('td');
+      td4.className = 'px-4 py-3 text-sm text-gray-500';
+      td4.textContent = date;
+      tr.appendChild(td4);
+
+      var td5 = document.createElement('td');
+      td5.className = 'px-4 py-3 text-right';
+      var btn = document.createElement('button');
+      btn.className = 'px-3 py-1.5 bg-orange-500 text-white rounded-lg text-xs font-medium hover:bg-orange-600 transition cursor-pointer';
+      btn.textContent = 'Reassign';
+      btn.setAttribute('data-exam-id', s.exam_id);
+      btn.addEventListener('click', function() {
+        reassignTest(s.exam_id);
+      });
+      td5.appendChild(btn);
+      tr.appendChild(td5);
+
+      tbody.appendChild(tr);
     });
-
-    document.getElementById('reassignSessionsList').innerHTML = html;
   } catch (err) {
-    document.getElementById('reassignSessionsList').innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-red-400">Failed to load sessions</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-red-400">Failed to load sessions</td></tr>';
   }
 }
 
@@ -253,21 +290,24 @@ function closeReassignModal() {
   document.getElementById('reassignModal').classList.add('hidden');
 }
 
-async function reassignTest(examId, examTitle) {
-  const sendEmail = document.getElementById('reassignSendEmail').checked;
-  if (!confirm(`Reassign "${examTitle}" to ${reassignStudentName}?\n\nThis will delete all previous session data (responses, violations, results) for this exam and allow the student to retake it.${sendEmail ? '\n\nA new invitation email will be sent.' : ''}`)) return;
+async function reassignTest(examId) {
+  var examTitle = reassignExamData[examId] || 'this exam';
+  var sendEmail = document.getElementById('reassignSendEmail').checked;
+  var msg = 'Reassign "' + examTitle + '" to ' + reassignStudentName + '?\n\nThis will delete all previous session data (responses, violations, results) for this exam and allow the student to retake it.';
+  if (sendEmail) msg += '\n\nA new invitation email will be sent.';
+  if (!confirm(msg)) return;
 
   try {
-    const res = await fetch(`/admin/students/${reassignStudentId}/reassign-test`, {
+    var res = await fetch('/admin/students/' + reassignStudentId + '/reassign-test', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ exam_id: examId, send_email: sendEmail })
     });
-    const data = await res.json();
+    var data = await res.json();
     if (data.success) {
-      let msg = `Test reassigned successfully! ${data.deletedSessions} session(s) cleared.`;
-      if (data.emailSent) msg += '\nInvitation email sent.';
-      alert(msg);
+      var resultMsg = 'Test reassigned successfully! ' + data.deletedSessions + ' session(s) cleared.';
+      if (data.emailSent) resultMsg += '\nInvitation email sent.';
+      alert(resultMsg);
       window.location.reload();
     } else {
       alert(data.error || 'Failed to reassign test');
