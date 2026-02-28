@@ -270,7 +270,10 @@ async function openReassignModal(studentId, studentName) {
       var td5 = document.createElement('td');
       td5.className = 'px-4 py-3 text-right';
       var btn = document.createElement('button');
-      btn.className = 'px-3 py-1.5 bg-orange-500 text-white rounded-lg text-xs font-medium hover:bg-orange-600 transition cursor-pointer';
+      btn.className = 'px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer';
+      btn.style.cssText = 'background-color: #f97316; color: #fff;';
+      btn.onmouseover = function() { btn.style.backgroundColor = '#ea580c'; };
+      btn.onmouseout = function() { btn.style.backgroundColor = '#f97316'; };
       btn.textContent = 'Reassign';
       btn.setAttribute('data-exam-id', s.exam_id);
       btn.addEventListener('click', function() {
