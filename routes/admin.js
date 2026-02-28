@@ -622,6 +622,93 @@ router.post('/admin/students/:id/delete', isAdminAuthenticated, async (req, res)
   }
 });
 
+// ==================== REASSIGN TEST ====================
+
+// Get student's exam sessions (for reassign modal)
+router.get('/admin/students/:id/sessions', isAdminAuthenticated, async (req, res) => {
+  try {
+    const [sessions] = await db.query(`
+      SELECT es.id as session_id, es.exam_id, es.status, es.created_at, es.started_at, es.submitted_at,
+             e.title as exam_title,
+             er.score, er.total_answered, er.correct_answers, er.admin_status
+      FROM ent_sessions es
+      JOIN ent_exams e ON es.exam_id = e.id
+      LEFT JOIN ent_results er ON er.session_id = es.id
+      WHERE es.student_id = ?
+      ORDER BY es.created_at DESC
+    `, [req.params.id]);
+    res.json({ success: true, sessions });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, error: 'Failed to fetch sessions' });
+  }
+});
+
+// Reassign test - delete old session(s) for student+exam so student can retake
+router.post('/admin/students/:id/reassign-test', isAdminAuthenticated, async (req, res) => {
+  try {
+    const { exam_id, send_email } = req.body;
+    if (!exam_id) {
+      return res.json({ success: false, error: 'Exam ID is required' });
+    }
+
+    const studentId = req.params.id;
+
+    // Verify student exists
+    const [students] = await db.query('SELECT * FROM ent_students WHERE id = ?', [studentId]);
+    if (students.length === 0) {
+      return res.json({ success: false, error: 'Student not found' });
+    }
+    const student = students[0];
+
+    // Delete all sessions for this student+exam (cascades to responses, violations, logs, results)
+    const [deleteResult] = await db.query(
+      'DELETE FROM ent_sessions WHERE student_id = ? AND exam_id = ?',
+      [studentId, exam_id]
+    );
+
+    // Ensure the exam assignment still exists (re-create if needed)
+    await db.query(
+      'INSERT IGNORE INTO ent_exam_assignments (student_id, exam_id, assigned_by) VALUES (?, ?, ?)',
+      [studentId, exam_id, req.session.adminId]
+    );
+
+    let emailSent = false;
+
+    // Optionally send a new invitation email
+    if (send_email && student.email) {
+      try {
+        const [exams] = await db.query('SELECT * FROM ent_exams WHERE id = ?', [exam_id]);
+        if (exams.length > 0) {
+          const token = uuidv4();
+          const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+          await db.query(
+            'INSERT INTO ent_login_tokens (student_id, token, exam_id, expires_at) VALUES (?, ?, ?, ?)',
+            [studentId, token, exam_id, expiresAt]
+          );
+          await sendExamInvitation(student, exams[0], token);
+          await db.query(
+            'UPDATE ent_exam_assignments SET email_sent = 1, email_sent_at = NOW() WHERE student_id = ? AND exam_id = ?',
+            [studentId, exam_id]
+          );
+          emailSent = true;
+        }
+      } catch (emailErr) {
+        console.error('Failed to send reassignment email:', emailErr.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      deletedSessions: deleteResult.affectedRows,
+      emailSent
+    });
+  } catch (err) {
+    console.error('Reassign test error:', err);
+    res.json({ success: false, error: 'Failed to reassign test' });
+  }
+});
+
 // ==================== EXAM ASSIGNMENTS ====================
 
 // View assignment page for an exam
