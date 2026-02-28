@@ -1,2 +1,10 @@
+<script>
+function toggleTheme(){
+  var d = document.documentElement;
+  var isDark = d.getAttribute('data-theme') === 'dark';
+  if(isDark){ d.removeAttribute('data-theme'); localStorage.setItem('theme','light'); }
+  else { d.setAttribute('data-theme','dark'); localStorage.setItem('theme','dark'); }
+}
+</script>
 </body>
 </html>

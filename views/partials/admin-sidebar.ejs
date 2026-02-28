@@ -1,59 +1,95 @@
-<div class="w-56 bg-gray-800 min-h-screen flex flex-col fixed left-0 top-0">
+<!-- Mobile Overlay -->
+<div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden" onclick="closeSidebar()"></div>
+
+<!-- Sidebar -->
+<div id="adminSidebar" class="w-64 bg-primary-900 dark:bg-surface-950 min-h-screen flex flex-col fixed left-0 top-0 z-50 transition-transform duration-300 -translate-x-full lg:translate-x-0">
   <!-- Logo -->
-  <div class="px-4 py-4 border-b border-gray-700">
-    <div class="flex items-center space-x-2">
-      <div class="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
-        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+  <div class="px-5 py-5 border-b border-primary-800 dark:border-surface-800">
+    <div class="flex items-center space-x-3">
+      <div class="w-9 h-9 bg-accent-500 rounded-xl flex items-center justify-center shadow-lg shadow-accent-500/20">
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
       </div>
       <div>
-        <p class="text-white font-bold text-sm">Exam Admin</p>
-        <p class="text-gray-400 text-xs">Proctoring System</p>
+        <p class="text-white font-bold text-sm tracking-tight">Exam Admin</p>
+        <p class="text-primary-300 dark:text-surface-500 text-xs">Proctoring System</p>
       </div>
     </div>
   </div>
 
   <!-- Navigation -->
   <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-    <a href="/admin/dashboard" class="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm transition
-      <%= typeof activePage !== 'undefined' && activePage === 'dashboard' ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' %>">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+    <a href="/admin/dashboard" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
+      <%= typeof activePage !== 'undefined' && activePage === 'dashboard'
+        ? 'bg-accent-500/15 text-accent-400 border-l-[3px] border-accent-400 pl-[9px]'
+        : 'text-primary-200 dark:text-surface-400 hover:bg-primary-800/60 dark:hover:bg-surface-800 hover:text-white' %>">
+      <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
       <span>Dashboard</span>
     </a>
 
-    <p class="px-3 pt-4 pb-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">Paper Setup</p>
+    <p class="px-3 pt-5 pb-2 text-[10px] font-bold text-primary-400 dark:text-surface-600 uppercase tracking-[0.12em]">Paper Setup</p>
 
-    <a href="/admin/degrees" class="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm transition
-      <%= typeof activePage !== 'undefined' && activePage === 'degrees' ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' %>">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+    <a href="/admin/degrees" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
+      <%= typeof activePage !== 'undefined' && activePage === 'degrees'
+        ? 'bg-accent-500/15 text-accent-400 border-l-[3px] border-accent-400 pl-[9px]'
+        : 'text-primary-200 dark:text-surface-400 hover:bg-primary-800/60 dark:hover:bg-surface-800 hover:text-white' %>">
+      <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
       <span>Degrees / Programs</span>
     </a>
 
-    <a href="/admin/exams" class="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm transition
-      <%= typeof activePage !== 'undefined' && activePage === 'exams' ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' %>">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+    <a href="/admin/exams" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
+      <%= typeof activePage !== 'undefined' && activePage === 'exams'
+        ? 'bg-accent-500/15 text-accent-400 border-l-[3px] border-accent-400 pl-[9px]'
+        : 'text-primary-200 dark:text-surface-400 hover:bg-primary-800/60 dark:hover:bg-surface-800 hover:text-white' %>">
+      <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
       <span>Question Papers</span>
     </a>
 
-    <p class="px-3 pt-4 pb-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">Management</p>
+    <p class="px-3 pt-5 pb-2 text-[10px] font-bold text-primary-400 dark:text-surface-600 uppercase tracking-[0.12em]">Management</p>
 
-    <a href="/admin/students" class="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm transition
-      <%= typeof activePage !== 'undefined' && activePage === 'students' ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' %>">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+    <a href="/admin/students" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
+      <%= typeof activePage !== 'undefined' && activePage === 'students'
+        ? 'bg-accent-500/15 text-accent-400 border-l-[3px] border-accent-400 pl-[9px]'
+        : 'text-primary-200 dark:text-surface-400 hover:bg-primary-800/60 dark:hover:bg-surface-800 hover:text-white' %>">
+      <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
       <span>Students</span>
     </a>
 
-    <a href="/admin/sessions" class="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm transition
-      <%= typeof activePage !== 'undefined' && activePage === 'sessions' ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' %>">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01m-.01 4h.01"/></svg>
+    <a href="/admin/sessions" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
+      <%= typeof activePage !== 'undefined' && activePage === 'sessions'
+        ? 'bg-accent-500/15 text-accent-400 border-l-[3px] border-accent-400 pl-[9px]'
+        : 'text-primary-200 dark:text-surface-400 hover:bg-primary-800/60 dark:hover:bg-surface-800 hover:text-white' %>">
+      <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01m-.01 4h.01"/></svg>
       <span>Exam Sessions</span>
     </a>
   </nav>
 
   <!-- Footer -->
-  <div class="px-4 py-3 border-t border-gray-700">
+  <div class="px-4 py-3 border-t border-primary-800 dark:border-surface-800">
     <div class="flex items-center justify-between">
-      <span class="text-xs text-gray-400 truncate"><%= typeof adminName !== 'undefined' ? adminName : 'Admin' %></span>
-      <a href="/admin/logout" class="text-xs text-red-400 hover:text-red-300">Logout</a>
+      <span class="text-xs text-primary-300 dark:text-surface-500 truncate"><%= typeof adminName !== 'undefined' ? adminName : 'Admin' %></span>
+      <div class="flex items-center space-x-2">
+        <button onclick="toggleTheme()" class="p-1.5 text-primary-300 dark:text-surface-500 hover:text-accent-400 transition cursor-pointer" title="Toggle theme">
+          <svg class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <svg class="w-4 h-4 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
+        <a href="/admin/logout" class="text-xs text-red-400 hover:text-red-300 font-medium">Logout</a>
+      </div>
     </div>
   </div>
 </div>
+
+<!-- Mobile Hamburger Button -->
+<button id="sidebarToggle" onclick="openSidebar()" class="fixed top-4 left-4 z-30 lg:hidden p-2 bg-[var(--card)] rounded-xl shadow-lg border border-[var(--card-border)] cursor-pointer">
+  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+</button>
+
+<script>
+function openSidebar(){
+  document.getElementById('adminSidebar').classList.remove('-translate-x-full');
+  document.getElementById('sidebarOverlay').classList.remove('hidden');
+}
+function closeSidebar(){
+  document.getElementById('adminSidebar').classList.add('-translate-x-full');
+  document.getElementById('sidebarOverlay').classList.add('hidden');
+}
+</script>
