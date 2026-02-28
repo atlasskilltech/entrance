@@ -32,7 +32,7 @@
     <% } else { %>
       <div class="grid gap-6">
         <% exams.forEach(exam => { %>
-          <% const completedSession = sessions.find(s => s.exam_id === exam.id && (s.status === 'submitted' || s.status === 'auto_submitted')); %>
+          <% const completedSession = sessions.find(s => s.exam_id === exam.id && (s.status === 'submitted' || s.status === 'auto_submitted' || s.status === 'disqualified')); %>
           <div class="bg-white rounded-xl shadow-sm border p-6 hover:shadow-md transition fade-in">
             <div class="flex items-start justify-between">
               <div>
@@ -52,8 +52,8 @@
               </div>
               <div>
                 <% if (completedSession) { %>
-                  <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-gray-600">
-                    Completed
+                  <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium <%= completedSession.status === 'disqualified' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600' %>">
+                    <%= completedSession.status === 'disqualified' ? 'Disqualified' : 'Completed' %>
                   </span>
                 <% } else { %>
                   <a href="/exam/<%= exam.id %>/start"

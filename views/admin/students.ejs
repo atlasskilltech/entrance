@@ -54,6 +54,11 @@
                   <td class="px-4 py-3 text-gray-500"><%= new Date(s.created_at).toLocaleDateString() %></td>
                   <td class="px-4 py-3 text-right">
                     <div class="flex items-center justify-end space-x-1">
+                      <% if (s.session_count > 0) { %>
+                        <button onclick="openReassignModal(<%= s.id %>, '<%= s.name.replace(/'/g, "\\'") %>')" class="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition cursor-pointer" title="Reassign Test">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        </button>
+                      <% } %>
                       <button onclick='editStudent(<%- JSON.stringify({id: s.id, application_id: s.application_id, name: s.name, email: s.email, mobile: s.mobile}) %>)' class="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer" title="Edit">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                       </button>
@@ -186,6 +191,92 @@ document.getElementById('studentForm').addEventListener('submit', async (e) => {
   }
 });
 
+// ===== Reassign Test =====
+let reassignStudentId = null;
+let reassignStudentName = '';
+
+async function openReassignModal(studentId, studentName) {
+  reassignStudentId = studentId;
+  reassignStudentName = studentName;
+  document.getElementById('reassignStudentName').textContent = studentName;
+  document.getElementById('reassignSessionsList').innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">Loading sessions...</td></tr>';
+  document.getElementById('reassignModal').classList.remove('hidden');
+
+  try {
+    const res = await fetch(`/admin/students/${studentId}/sessions`);
+    const data = await res.json();
+    if (!data.success || data.sessions.length === 0) {
+      document.getElementById('reassignSessionsList').innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">No exam sessions found</td></tr>';
+      return;
+    }
+
+    // Group sessions by exam (show only latest per exam)
+    const examMap = {};
+    data.sessions.forEach(s => {
+      if (!examMap[s.exam_id]) examMap[s.exam_id] = s;
+    });
+
+    let html = '';
+    Object.values(examMap).forEach(s => {
+      const statusColors = {
+        submitted: 'bg-green-100 text-green-800',
+        auto_submitted: 'bg-yellow-100 text-yellow-800',
+        disqualified: 'bg-red-100 text-red-800',
+        in_progress: 'bg-blue-100 text-blue-800',
+        compatibility_check: 'bg-gray-100 text-gray-600',
+        av_verification: 'bg-gray-100 text-gray-600',
+        rules: 'bg-gray-100 text-gray-600'
+      };
+      const statusClass = statusColors[s.status] || 'bg-gray-100 text-gray-600';
+      const statusText = s.status.replace(/_/g, ' ');
+      const score = s.score !== null && s.score !== undefined ? s.score : '-';
+      const date = new Date(s.created_at).toLocaleDateString();
+
+      html += '<tr class="hover:bg-gray-50">';
+      html += '<td class="px-4 py-3 font-medium text-sm">' + s.exam_title + '</td>';
+      html += '<td class="px-4 py-3"><span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium ' + statusClass + '">' + statusText + '</span></td>';
+      html += '<td class="px-4 py-3 text-sm text-gray-500">' + score + '</td>';
+      html += '<td class="px-4 py-3 text-sm text-gray-500">' + date + '</td>';
+      html += '<td class="px-4 py-3 text-right">';
+      html += '<button onclick="reassignTest(' + s.exam_id + ', \'' + s.exam_title.replace(/'/g, "\\'") + '\')" class="px-3 py-1.5 bg-orange-500 text-white rounded-lg text-xs font-medium hover:bg-orange-600 transition cursor-pointer">Reassign</button>';
+      html += '</td>';
+      html += '</tr>';
+    });
+
+    document.getElementById('reassignSessionsList').innerHTML = html;
+  } catch (err) {
+    document.getElementById('reassignSessionsList').innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-red-400">Failed to load sessions</td></tr>';
+  }
+}
+
+function closeReassignModal() {
+  document.getElementById('reassignModal').classList.add('hidden');
+}
+
+async function reassignTest(examId, examTitle) {
+  const sendEmail = document.getElementById('reassignSendEmail').checked;
+  if (!confirm(`Reassign "${examTitle}" to ${reassignStudentName}?\n\nThis will delete all previous session data (responses, violations, results) for this exam and allow the student to retake it.${sendEmail ? '\n\nA new invitation email will be sent.' : ''}`)) return;
+
+  try {
+    const res = await fetch(`/admin/students/${reassignStudentId}/reassign-test`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ exam_id: examId, send_email: sendEmail })
+    });
+    const data = await res.json();
+    if (data.success) {
+      let msg = `Test reassigned successfully! ${data.deletedSessions} session(s) cleared.`;
+      if (data.emailSent) msg += '\nInvitation email sent.';
+      alert(msg);
+      window.location.reload();
+    } else {
+      alert(data.error || 'Failed to reassign test');
+    }
+  } catch (err) {
+    alert('Failed to reassign test');
+  }
+}
+
 async function deleteStudent(id, name) {
   if (!confirm(`Delete student "${name}"? This cannot be undone.`)) return;
   const res = await fetch(`/admin/students/${id}/delete`, { method: 'POST' });
@@ -194,5 +285,51 @@ async function deleteStudent(id, name) {
   else alert(data.error || 'Failed to delete');
 }
 </script>
+
+<!-- Reassign Test Modal -->
+<div id="reassignModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+  <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 p-6">
+    <div class="flex items-center justify-between mb-5">
+      <div>
+        <h2 class="text-lg font-bold text-gray-800">Reassign Test</h2>
+        <p class="text-sm text-gray-500">Student: <span id="reassignStudentName" class="font-medium text-gray-700"></span></p>
+      </div>
+      <button onclick="closeReassignModal()" class="text-gray-400 hover:text-gray-600 cursor-pointer">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
+      <p class="text-xs text-orange-700">Reassigning a test will delete all previous session data (responses, violations, results) for that exam. The student will be able to start the exam fresh.</p>
+    </div>
+
+    <div class="mb-4">
+      <label class="flex items-center space-x-2 text-sm">
+        <input type="checkbox" id="reassignSendEmail" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+        <span class="text-gray-700">Send new invitation email after reassignment</span>
+      </label>
+    </div>
+
+    <div class="bg-white rounded-lg border overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-4 py-2 text-left font-semibold text-gray-600">Exam</th>
+            <th class="px-4 py-2 text-left font-semibold text-gray-600">Status</th>
+            <th class="px-4 py-2 text-left font-semibold text-gray-600">Score</th>
+            <th class="px-4 py-2 text-left font-semibold text-gray-600">Date</th>
+            <th class="px-4 py-2 text-right font-semibold text-gray-600">Action</th>
+          </tr>
+        </thead>
+        <tbody id="reassignSessionsList" class="divide-y divide-gray-100">
+        </tbody>
+      </table>
+    </div>
+
+    <div class="flex justify-end mt-4">
+      <button onclick="closeReassignModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition cursor-pointer">Close</button>
+    </div>
+  </div>
+</div>
 
 <%- include('../partials/footer') %>
