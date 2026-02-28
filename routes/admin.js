@@ -143,7 +143,7 @@ router.get('/admin/exams', isAdminAuthenticated, async (req, res) => {
 router.post('/admin/exams/create', isAdminAuthenticated, async (req, res) => {
   try {
     const {
-      title, exam_code, description, instructions, degree_id,
+      title, exam_code, description, instructions, exam_rules, question_instructions, degree_id,
       duration_minutes, total_questions, total_marks, passing_marks,
       negative_marking, negative_mark_value, shuffle_questions,
       show_result_immediately, max_tab_switches, max_violations,
@@ -151,13 +151,14 @@ router.post('/admin/exams/create', isAdminAuthenticated, async (req, res) => {
     } = req.body;
 
     const [result] = await db.query(
-      `INSERT INTO ent_exams (title, exam_code, description, instructions, degree_id,
+      `INSERT INTO ent_exams (title, exam_code, description, instructions, exam_rules, question_instructions, degree_id,
         duration_minutes, total_questions, total_marks, passing_marks,
         negative_marking, negative_mark_value, shuffle_questions,
         show_result_immediately, max_tab_switches, max_violations,
         auto_save_interval, exam_date, start_time, end_time)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [title, exam_code || null, description || null, instructions || null,
+       exam_rules || null, question_instructions || null,
        degree_id || null, duration_minutes || 60, total_questions || 0,
        total_marks || 100, passing_marks || 40,
        negative_marking ? 1 : 0, negative_mark_value || 0.25,
@@ -175,7 +176,7 @@ router.post('/admin/exams/create', isAdminAuthenticated, async (req, res) => {
 router.post('/admin/exams/:id/update', isAdminAuthenticated, async (req, res) => {
   try {
     const {
-      title, exam_code, description, instructions, degree_id,
+      title, exam_code, description, instructions, exam_rules, question_instructions, degree_id,
       duration_minutes, total_questions, total_marks, passing_marks,
       negative_marking, negative_mark_value, shuffle_questions,
       show_result_immediately, max_tab_switches, max_violations,
@@ -183,13 +184,14 @@ router.post('/admin/exams/:id/update', isAdminAuthenticated, async (req, res) =>
     } = req.body;
 
     await db.query(
-      `UPDATE ent_exams SET title=?, exam_code=?, description=?, instructions=?, degree_id=?,
-        duration_minutes=?, total_questions=?, total_marks=?, passing_marks=?,
+      `UPDATE ent_exams SET title=?, exam_code=?, description=?, instructions=?, exam_rules=?, question_instructions=?,
+        degree_id=?, duration_minutes=?, total_questions=?, total_marks=?, passing_marks=?,
         negative_marking=?, negative_mark_value=?, shuffle_questions=?,
         show_result_immediately=?, max_tab_switches=?, max_violations=?,
         auto_save_interval=?, exam_date=?, start_time=?, end_time=?, is_active=?
        WHERE id=?`,
       [title, exam_code || null, description || null, instructions || null,
+       exam_rules || null, question_instructions || null,
        degree_id || null, duration_minutes || 60, total_questions || 0,
        total_marks || 100, passing_marks || 40,
        negative_marking ? 1 : 0, negative_mark_value || 0.25,
