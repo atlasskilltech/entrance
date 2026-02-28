@@ -1,10 +1,10 @@
 <%- include('../partials/head', { title: 'Audio & Video Verification' }) %>
 
-<div class="min-h-screen bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 flex items-center justify-center p-4">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl p-8 fade-in">
+<div class="min-h-screen bg-gradient-to-br from-primary-800 via-primary-900 to-primary-950 flex items-center justify-center p-4">
+  <div class="bg-[var(--card)] rounded-2xl shadow-2xl border border-[var(--card-border)] w-full max-w-3xl p-8 fade-in">
     <div class="text-center mb-6">
-      <h1 class="text-2xl font-bold text-gray-800">Audio & Video Verification</h1>
-      <p class="text-gray-500 mt-1"><%= session.exam_title %></p>
+      <h1 class="text-2xl font-bold text-surface-900 dark:text-surface-50">Audio & Video Verification</h1>
+      <p class="text-surface-500 dark:text-surface-400 mt-1"><%= session.exam_title %></p>
     </div>
 
     <!-- Progress Steps -->
@@ -15,42 +15,42 @@
       </div>
       <div class="w-8 h-0.5 bg-green-400"></div>
       <div class="flex items-center space-x-2">
-        <div class="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
-        <span class="text-sm font-medium text-indigo-600">A/V Check</span>
+        <div class="w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
+        <span class="text-sm font-medium text-primary-600 dark:text-primary-400">A/V Check</span>
       </div>
-      <div class="w-8 h-0.5 bg-gray-300"></div>
+      <div class="w-8 h-0.5 bg-surface-300 dark:bg-surface-600"></div>
       <div class="flex items-center space-x-2">
-        <div class="w-8 h-8 bg-gray-300 text-gray-500 rounded-full flex items-center justify-center text-sm font-bold">3</div>
-        <span class="text-sm text-gray-400">Rules</span>
+        <div class="w-8 h-8 bg-surface-300 dark:bg-surface-600 text-surface-500 dark:text-surface-400 rounded-full flex items-center justify-center text-sm font-bold">3</div>
+        <span class="text-sm text-surface-400 dark:text-surface-500">Rules</span>
       </div>
-      <div class="w-8 h-0.5 bg-gray-300"></div>
+      <div class="w-8 h-0.5 bg-surface-300 dark:bg-surface-600"></div>
       <div class="flex items-center space-x-2">
-        <div class="w-8 h-8 bg-gray-300 text-gray-500 rounded-full flex items-center justify-center text-sm font-bold">4</div>
-        <span class="text-sm text-gray-400">Exam</span>
+        <div class="w-8 h-8 bg-surface-300 dark:bg-surface-600 text-surface-500 dark:text-surface-400 rounded-full flex items-center justify-center text-sm font-bold">4</div>
+        <span class="text-sm text-surface-400 dark:text-surface-500">Exam</span>
       </div>
     </div>
 
     <div class="grid md:grid-cols-2 gap-6">
       <!-- Microphone Test Section -->
-      <div class="border rounded-xl p-5">
-        <h3 class="font-bold text-gray-800 mb-3 flex items-center">
-          <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-14 0m14 0a7 7 0 00-14 0m14 0v1a7 7 0 01-14 0v-1m7 8v4m-4 0h8"/></svg>
+      <div class="border rounded-2xl p-5">
+        <h3 class="font-bold text-surface-900 dark:text-surface-50 mb-3 flex items-center">
+          <svg class="w-5 h-5 mr-2 text-primary-500 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-14 0m14 0a7 7 0 00-14 0m14 0v1a7 7 0 01-14 0v-1m7 8v4m-4 0h8"/></svg>
           Microphone Test
         </h3>
-        <p class="text-sm text-gray-500 mb-3">Please read aloud:</p>
-        <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-3 mb-4 text-center">
-          <p class="text-indigo-700 font-medium italic">"Hi, I am <strong><%= studentName %></strong>, and I am ready for this test."</p>
+        <p class="text-sm text-surface-500 dark:text-surface-400 mb-3">Please read aloud:</p>
+        <div class="bg-primary-50 dark:bg-primary-900/20 border border-indigo-200 rounded-lg p-3 mb-4 text-center">
+          <p class="text-primary-700 dark:text-primary-300 font-medium italic">"Hi, I am <strong><%= studentName %></strong>, and I am ready for this test."</p>
         </div>
 
         <!-- Audio waveform visualization -->
-        <div class="bg-gray-100 rounded-lg h-16 mb-3 flex items-center justify-center overflow-hidden" id="waveformContainer">
+        <div class="bg-surface-100 dark:bg-surface-800 rounded-lg h-16 mb-3 flex items-center justify-center overflow-hidden" id="waveformContainer">
           <canvas id="waveform" width="300" height="60" class="w-full"></canvas>
         </div>
 
         <!-- Live speech-to-text display -->
-        <div id="speechTextBox" class="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-3 min-h-[48px] hidden">
-          <p class="text-xs text-gray-400 mb-1">You said:</p>
-          <p id="speechText" class="text-sm text-gray-800 font-medium"></p>
+        <div id="speechTextBox" class="bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-lg p-3 mb-3 min-h-[48px] hidden">
+          <p class="text-xs text-surface-400 dark:text-surface-500 mb-1">You said:</p>
+          <p id="speechText" class="text-sm text-surface-900 dark:text-surface-50 font-medium"></p>
         </div>
 
         <!-- Speech match result -->
@@ -58,25 +58,25 @@
 
         <div class="flex space-x-2">
           <button id="startRecordBtn" onclick="startRecording()"
-                  class="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition cursor-pointer">
+                  class="flex-1 px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition cursor-pointer">
             Start Recording
           </button>
           <button id="stopRecordBtn" onclick="stopRecording()" disabled
-                  class="flex-1 px-4 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed">
+                  class="flex-1 px-4 py-2 bg-surface-300 dark:bg-surface-700 text-surface-500 dark:text-surface-400 rounded-xl text-sm font-medium cursor-not-allowed">
             Stop Recording
           </button>
         </div>
-        <div id="micStatus" class="mt-2 text-sm text-center text-gray-400">Click "Start Recording" to begin</div>
+        <div id="micStatus" class="mt-2 text-sm text-center text-surface-400 dark:text-surface-500">Click "Start Recording" to begin</div>
       </div>
 
       <!-- Webcam & Photo Section -->
-      <div class="border rounded-xl p-5">
-        <h3 class="font-bold text-gray-800 mb-3 flex items-center">
-          <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+      <div class="border rounded-2xl p-5">
+        <h3 class="font-bold text-surface-900 dark:text-surface-50 mb-3 flex items-center">
+          <svg class="w-5 h-5 mr-2 text-primary-500 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
           Webcam & Face Capture
         </h3>
 
-        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3 text-xs text-yellow-700">
+        <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 mb-3 text-xs text-yellow-700 dark:text-yellow-400">
           <p class="font-medium mb-1">Instructions:</p>
           <ul class="list-disc pl-4 space-y-0.5">
             <li>Ensure proper lighting</li>
@@ -85,7 +85,7 @@
           </ul>
         </div>
 
-        <div class="relative bg-gray-900 rounded-lg overflow-hidden mb-3" style="height: 200px">
+        <div class="relative bg-surface-950 rounded-lg overflow-hidden mb-3" style="height: 200px">
           <video id="webcam" autoplay playsinline muted class="w-full h-full object-cover" style="transform: scaleX(-1);"></video>
           <canvas id="photoCanvas" class="hidden"></canvas>
           <canvas id="faceDetectCanvas" class="hidden"></canvas>
@@ -108,21 +108,21 @@
 
         <div class="flex space-x-2">
           <button id="takePhotoBtn" onclick="takePhoto()" disabled
-                  class="flex-1 px-4 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed">
+                  class="flex-1 px-4 py-2 bg-surface-300 dark:bg-surface-700 text-surface-500 dark:text-surface-400 rounded-xl text-sm font-medium cursor-not-allowed">
             Take Photo
           </button>
-          <button id="retakePhotoBtn" onclick="retakePhoto()" class="hidden flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300 transition cursor-pointer">
+          <button id="retakePhotoBtn" onclick="retakePhoto()" class="hidden flex-1 px-4 py-2 bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 rounded-xl text-sm font-medium hover:bg-surface-300 dark:hover:bg-surface-600 transition cursor-pointer">
             Retake
           </button>
         </div>
-        <div id="photoStatus" class="mt-2 text-sm text-center text-gray-400">Align your face in the oval to enable capture</div>
+        <div id="photoStatus" class="mt-2 text-sm text-center text-surface-400 dark:text-surface-500">Align your face in the oval to enable capture</div>
       </div>
     </div>
 
     <!-- Continue Button -->
     <div class="mt-8 text-center">
       <button id="continueBtn" disabled
-              class="px-8 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition shadow-lg disabled:bg-gray-300 disabled:cursor-not-allowed cursor-pointer"
+              class="px-8 py-3 bg-primary-600 dark:bg-primary-500 text-white rounded-xl font-semibold hover:bg-primary-700 dark:hover:bg-primary-400 transition shadow-lg disabled:bg-surface-300 dark:disabled:bg-surface-700 disabled:cursor-not-allowed cursor-pointer"
               onclick="proceedToRules()">
         Continue to Exam Rules
         <svg class="w-4 h-4 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
@@ -219,7 +219,7 @@ function initFaceDetection() {
     faceIsCentered = true;
     const takeBtn = document.getElementById('takePhotoBtn');
     takeBtn.disabled = false;
-    takeBtn.className = 'flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition cursor-pointer';
+    takeBtn.className = 'flex-1 px-4 py-2 bg-primary-600 text-white rounded-xl text-sm font-medium hover:bg-primary-700 transition cursor-pointer';
     document.getElementById('faceGuideText').textContent = 'Position your face in the oval';
     document.getElementById('photoStatus').textContent = 'Align your face in the oval and take photo';
   }
@@ -244,7 +244,7 @@ async function detectFaces() {
       guideText.textContent = 'No face detected';
       guideText.className = 'absolute bottom-2 text-red-400 text-xs font-medium';
       takeBtn.disabled = true;
-      takeBtn.className = 'flex-1 px-4 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed';
+      takeBtn.className = 'flex-1 px-4 py-2 bg-surface-300 dark:bg-surface-700 text-surface-500 dark:text-surface-400 rounded-xl text-sm font-medium cursor-not-allowed';
       return;
     }
 
@@ -256,7 +256,7 @@ async function detectFaces() {
       guideText.textContent = 'Only one face allowed';
       guideText.className = 'absolute bottom-2 text-red-400 text-xs font-medium';
       takeBtn.disabled = true;
-      takeBtn.className = 'flex-1 px-4 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed';
+      takeBtn.className = 'flex-1 px-4 py-2 bg-surface-300 dark:bg-surface-700 text-surface-500 dark:text-surface-400 rounded-xl text-sm font-medium cursor-not-allowed';
       return;
     }
 
@@ -287,7 +287,7 @@ async function detectFaces() {
       guideText.textContent = 'Face aligned - ready to capture';
       guideText.className = 'absolute bottom-2 text-green-400 text-xs font-medium';
       takeBtn.disabled = false;
-      takeBtn.className = 'flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition cursor-pointer';
+      takeBtn.className = 'flex-1 px-4 py-2 bg-primary-600 text-white rounded-xl text-sm font-medium hover:bg-primary-700 transition cursor-pointer';
     } else {
       // Face detected but not centered
       faceIsCentered = false;
@@ -300,14 +300,14 @@ async function detectFaces() {
       guideText.textContent = hint.trim();
       guideText.className = 'absolute bottom-2 text-yellow-400 text-xs font-medium';
       takeBtn.disabled = true;
-      takeBtn.className = 'flex-1 px-4 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed';
+      takeBtn.className = 'flex-1 px-4 py-2 bg-surface-300 dark:bg-surface-700 text-surface-500 dark:text-surface-400 rounded-xl text-sm font-medium cursor-not-allowed';
     }
   } catch (err) {
     // FaceDetector error - gracefully allow capture
     faceIsCentered = true;
     const takeBtn = document.getElementById('takePhotoBtn');
     takeBtn.disabled = false;
-    takeBtn.className = 'flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition cursor-pointer';
+    takeBtn.className = 'flex-1 px-4 py-2 bg-primary-600 text-white rounded-xl text-sm font-medium hover:bg-primary-700 transition cursor-pointer';
   }
 }
 
@@ -351,7 +351,7 @@ function initSpeechRecognition() {
     const speechText = document.getElementById('speechText');
     speechBox.classList.remove('hidden');
     if (fullTranscript) {
-      speechText.innerHTML = `<span class="text-gray-800">${finalTranscript}</span><span class="text-gray-400">${interimTranscript}</span>`;
+      speechText.innerHTML = `<span class="text-surface-900 dark:text-surface-100">${finalTranscript}</span><span class="text-surface-400">${interimTranscript}</span>`;
     }
   };
 
@@ -421,7 +421,7 @@ function startRecording() {
   }
 
   document.getElementById('startRecordBtn').disabled = true;
-  document.getElementById('startRecordBtn').className = 'flex-1 px-4 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed';
+  document.getElementById('startRecordBtn').className = 'flex-1 px-4 py-2 bg-surface-300 dark:bg-surface-700 text-surface-500 dark:text-surface-400 rounded-xl text-sm font-medium cursor-not-allowed';
   document.getElementById('stopRecordBtn').disabled = false;
   document.getElementById('stopRecordBtn').className = 'flex-1 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition cursor-pointer';
   document.getElementById('micStatus').textContent = 'Recording... Speak the text above clearly';
@@ -436,7 +436,7 @@ function stopRecording() {
     try { speechRecognition.stop(); } catch (e) {}
   }
   document.getElementById('stopRecordBtn').disabled = true;
-  document.getElementById('stopRecordBtn').className = 'flex-1 px-4 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed';
+  document.getElementById('stopRecordBtn').className = 'flex-1 px-4 py-2 bg-surface-300 dark:bg-surface-700 text-surface-500 dark:text-surface-400 rounded-xl text-sm font-medium cursor-not-allowed';
 }
 
 function validateSpeech() {
@@ -684,7 +684,7 @@ function retakePhoto() {
   document.getElementById('takePhotoBtn').classList.remove('hidden');
   document.getElementById('retakePhotoBtn').classList.add('hidden');
   document.getElementById('photoStatus').textContent = 'Align your face in the oval to enable capture';
-  document.getElementById('photoStatus').className = 'mt-2 text-sm text-center text-gray-400';
+  document.getElementById('photoStatus').className = 'mt-2 text-sm text-center text-surface-400';
   photoDone = false;
   faceIsCentered = false;
   startFaceDetectionLoop();

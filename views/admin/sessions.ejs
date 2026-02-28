@@ -1,79 +1,79 @@
 <%- include('../partials/head', { title: 'Exam Sessions - Admin' }) %>
 
-<div class="min-h-screen bg-gray-50 flex">
+<div class="min-h-screen flex">
   <%- include('../partials/admin-sidebar') %>
 
-  <div class="ml-56 flex-1">
-    <div class="bg-white border-b px-6 py-4">
-      <h1 class="text-xl font-bold text-gray-800">Exam Sessions</h1>
-      <p class="text-sm text-gray-500">All proctored exam sessions</p>
+  <div class="lg:ml-64 flex-1">
+    <div class="bg-[var(--card)] border-b border-[var(--card-border)] px-4 sm:px-6 py-4">
+      <h1 class="text-xl font-bold text-surface-900 dark:text-surface-50 ml-10 lg:ml-0">Exam Sessions</h1>
+      <p class="text-sm text-surface-500 dark:text-surface-400 ml-10 lg:ml-0">All proctored exam sessions</p>
     </div>
 
-    <div class="p-6">
-      <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+    <div class="p-4 sm:p-6">
+      <div class="bg-[var(--card)] rounded-2xl shadow-sm border border-[var(--card-border)] overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
-            <thead class="bg-gray-50">
+            <thead class="bg-surface-50 dark:bg-surface-800/50">
               <tr>
-                <th class="px-4 py-3 text-left font-semibold text-gray-600">#</th>
-                <th class="px-4 py-3 text-left font-semibold text-gray-600">Student</th>
-                <th class="px-4 py-3 text-left font-semibold text-gray-600">App ID</th>
-                <th class="px-4 py-3 text-left font-semibold text-gray-600">Exam</th>
-                <th class="px-4 py-3 text-left font-semibold text-gray-600">Status</th>
-                <th class="px-4 py-3 text-left font-semibold text-gray-600">Violations</th>
-                <th class="px-4 py-3 text-left font-semibold text-gray-600">Score</th>
-                <th class="px-4 py-3 text-left font-semibold text-gray-600">Risk</th>
-                <th class="px-4 py-3 text-left font-semibold text-gray-600">Review</th>
-                <th class="px-4 py-3 text-left font-semibold text-gray-600">Date</th>
-                <th class="px-4 py-3 text-left font-semibold text-gray-600">Action</th>
+                <th class="px-4 py-3 text-left font-semibold text-surface-600 dark:text-surface-400">#</th>
+                <th class="px-4 py-3 text-left font-semibold text-surface-600 dark:text-surface-400">Student</th>
+                <th class="px-4 py-3 text-left font-semibold text-surface-600 dark:text-surface-400">App ID</th>
+                <th class="px-4 py-3 text-left font-semibold text-surface-600 dark:text-surface-400">Exam</th>
+                <th class="px-4 py-3 text-left font-semibold text-surface-600 dark:text-surface-400">Status</th>
+                <th class="px-4 py-3 text-left font-semibold text-surface-600 dark:text-surface-400">Violations</th>
+                <th class="px-4 py-3 text-left font-semibold text-surface-600 dark:text-surface-400">Score</th>
+                <th class="px-4 py-3 text-left font-semibold text-surface-600 dark:text-surface-400">Risk</th>
+                <th class="px-4 py-3 text-left font-semibold text-surface-600 dark:text-surface-400">Review</th>
+                <th class="px-4 py-3 text-left font-semibold text-surface-600 dark:text-surface-400">Date</th>
+                <th class="px-4 py-3 text-left font-semibold text-surface-600 dark:text-surface-400">Action</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
+            <tbody class="divide-y divide-surface-100 dark:divide-surface-800">
               <% if (sessions.length === 0) { %>
-                <tr><td colspan="11" class="px-4 py-8 text-center text-gray-400">No exam sessions yet</td></tr>
+                <tr><td colspan="11" class="px-4 py-8 text-center text-surface-400">No exam sessions yet</td></tr>
               <% } %>
               <% sessions.forEach(s => { %>
-                <tr class="hover:bg-gray-50">
-                  <td class="px-4 py-3 text-gray-400"><%= s.id %></td>
-                  <td class="px-4 py-3 font-medium"><%= s.student_name %></td>
-                  <td class="px-4 py-3 text-gray-500"><%= s.application_id %></td>
-                  <td class="px-4 py-3 text-gray-500 max-w-32 truncate"><%= s.exam_title %></td>
+                <tr class="hover:bg-surface-50 dark:hover:bg-surface-800/30 transition">
+                  <td class="px-4 py-3 text-surface-400"><%= s.id %></td>
+                  <td class="px-4 py-3 font-medium text-surface-900 dark:text-surface-100"><%= s.student_name %></td>
+                  <td class="px-4 py-3 text-surface-500 dark:text-surface-400"><%= s.application_id %></td>
+                  <td class="px-4 py-3 text-surface-500 dark:text-surface-400 max-w-32 truncate"><%= s.exam_title %></td>
                   <td class="px-4 py-3">
-                    <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium
-                      <%= s.status === 'submitted' ? 'bg-green-100 text-green-800' :
-                         s.status === 'auto_submitted' ? 'bg-amber-100 text-amber-800' :
-                         s.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                         s.status === 'disqualified' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800' %>">
+                    <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold
+                      <%= s.status === 'submitted' ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' :
+                         s.status === 'auto_submitted' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400' :
+                         s.status === 'in_progress' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' :
+                         s.status === 'disqualified' ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400' : 'bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-400' %>">
                       <%= s.status.replace('_', ' ') %>
                     </span>
                   </td>
                   <td class="px-4 py-3">
-                    <span class="<%= s.violation_count > 5 ? 'text-red-600 font-bold' : s.violation_count > 2 ? 'text-amber-600' : '' %>"><%= s.violation_count %></span>
+                    <span class="<%= s.violation_count > 5 ? 'text-red-600 dark:text-red-400 font-bold' : s.violation_count > 2 ? 'text-amber-600 dark:text-amber-400' : 'text-surface-900 dark:text-surface-100' %>"><%= s.violation_count %></span>
                   </td>
-                  <td class="px-4 py-3 font-medium"><%= s.score !== null ? s.score : '-' %></td>
+                  <td class="px-4 py-3 font-medium text-surface-900 dark:text-surface-100"><%= s.score !== null ? s.score : '-' %></td>
                   <td class="px-4 py-3">
                     <% if (s.risk_score !== null && s.risk_score !== undefined) { %>
                       <div class="flex items-center space-x-1">
-                        <div class="w-12 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                          <div class="h-full rounded-full <%= s.risk_score >= 70 ? 'bg-red-500' : s.risk_score >= 40 ? 'bg-amber-500' : 'bg-green-500' %>" style="width: <%= s.risk_score %>%"></div>
+                        <div class="w-12 h-1.5 bg-surface-200 dark:bg-surface-700 rounded-full overflow-hidden">
+                          <div class="h-full rounded-full <%= s.risk_score >= 70 ? 'bg-red-500' : s.risk_score >= 40 ? 'bg-amber-500' : 'bg-accent-500' %>" style="width: <%= s.risk_score %>%"></div>
                         </div>
-                        <span class="text-xs"><%= s.risk_score ? Number(s.risk_score).toFixed(0) : 0 %>%</span>
+                        <span class="text-xs text-surface-600 dark:text-surface-400"><%= s.risk_score ? Number(s.risk_score).toFixed(0) : 0 %>%</span>
                       </div>
                     <% } else { %>-<% } %>
                   </td>
                   <td class="px-4 py-3">
                     <% if (s.admin_status) { %>
-                      <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium
-                        <%= s.admin_status === 'approved' ? 'bg-green-100 text-green-800' :
-                           s.admin_status === 'flagged' ? 'bg-amber-100 text-amber-800' :
-                           s.admin_status === 'disqualified' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800' %>">
+                      <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold
+                        <%= s.admin_status === 'approved' ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' :
+                           s.admin_status === 'flagged' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400' :
+                           s.admin_status === 'disqualified' ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400' : 'bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-400' %>">
                         <%= s.admin_status %>
                       </span>
                     <% } else { %>-<% } %>
                   </td>
-                  <td class="px-4 py-3 text-gray-400 text-xs"><%= new Date(s.created_at).toLocaleDateString() %></td>
+                  <td class="px-4 py-3 text-surface-400 text-xs"><%= new Date(s.created_at).toLocaleDateString() %></td>
                   <td class="px-4 py-3">
-                    <a href="/admin/session/<%= s.id %>" class="text-indigo-600 hover:text-indigo-800 font-medium text-sm">Details</a>
+                    <a href="/admin/session/<%= s.id %>" class="text-primary-500 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium text-sm">Details</a>
                   </td>
                 </tr>
               <% }) %>

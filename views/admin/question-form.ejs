@@ -1,29 +1,29 @@
 <%- include('../partials/head', { title: (question ? 'Edit' : 'Add') + ' Question - ' + exam.title }) %>
 
-<div class="min-h-screen bg-gray-50 flex">
+<div class="min-h-screen flex">
   <%- include('../partials/admin-sidebar') %>
 
-  <div class="ml-56 flex-1">
+  <div class="lg:ml-64 flex-1">
     <!-- Header -->
-    <div class="bg-white border-b px-6 py-4">
-      <div class="flex items-center space-x-2 text-sm text-gray-500 mb-1">
-        <a href="/admin/exams" class="hover:text-indigo-600 transition">Question Papers</a>
+    <div class="bg-[var(--card)] border-b border-[var(--card-border)] px-4 sm:px-6 py-4">
+      <div class="flex items-center space-x-2 text-sm text-surface-500 dark:text-surface-400 mb-1 ml-10 lg:ml-0">
+        <a href="/admin/exams" class="hover:text-primary-500 dark:hover:text-primary-400 transition">Question Papers</a>
         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-        <a href="/admin/exams/<%= exam.id %>" class="hover:text-indigo-600 transition"><%= exam.title %></a>
+        <a href="/admin/exams/<%= exam.id %>" class="hover:text-primary-500 dark:hover:text-primary-400 transition"><%= exam.title %></a>
         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-        <span class="text-gray-800"><%= question ? 'Edit Question' : 'Add Question' %></span>
+        <span class="text-surface-900 dark:text-surface-50"><%= question ? 'Edit Question' : 'Add Question' %></span>
       </div>
-      <h1 class="text-xl font-bold text-gray-800"><%= question ? 'Edit Question' : 'Add New Question' %></h1>
+      <h1 class="text-xl font-bold text-surface-900 dark:text-surface-50 ml-10 lg:ml-0"><%= question ? 'Edit Question' : 'Add New Question' %></h1>
     </div>
 
-    <div class="p-6">
+    <div class="p-4 sm:p-6">
       <div class="max-w-3xl">
-        <form id="questionForm" class="bg-white rounded-xl shadow-sm border p-6 space-y-5">
+        <form id="questionForm" class="bg-[var(--card)] rounded-2xl shadow-sm border border-[var(--card-border)] p-5 sm:p-6 space-y-5">
           <!-- Section & Type -->
-          <div class="grid grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Section</label>
-              <select id="qSection" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+              <label class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Section</label>
+              <select id="qSection" class="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-sm text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                 <option value="">-- No Section --</option>
                 <% sections.forEach(s => { %>
                   <option value="<%= s.id %>"
@@ -34,8 +34,8 @@
               </select>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Question Type</label>
-              <select id="qType" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+              <label class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Question Type</label>
+              <select id="qType" class="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-sm text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                 <option value="mcq" <%= question && question.question_type === 'mcq' ? 'selected' : '' %>>MCQ</option>
                 <option value="true_false" <%= question && question.question_type === 'true_false' ? 'selected' : '' %>>True/False</option>
                 <option value="fill_blank" <%= question && question.question_type === 'fill_blank' ? 'selected' : '' %>>Fill in the Blank</option>
@@ -47,8 +47,8 @@
               </select>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Difficulty</label>
-              <select id="qDifficulty" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+              <label class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Difficulty</label>
+              <select id="qDifficulty" class="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-sm text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                 <option value="easy" <%= question && question.difficulty === 'easy' ? 'selected' : '' %>>Easy</option>
                 <option value="medium" <%= (!question || question.difficulty === 'medium') ? 'selected' : '' %>>Medium</option>
                 <option value="hard" <%= question && question.difficulty === 'hard' ? 'selected' : '' %>>Hard</option>
@@ -58,145 +58,145 @@
 
           <!-- Question Text -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Question Text *</label>
+            <label class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Question Text *</label>
             <textarea id="qText" rows="4" required placeholder="Enter the question..."
-                      class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"><%= question ? question.question_text : '' %></textarea>
+                      class="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-sm text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"><%= question ? question.question_text : '' %></textarea>
           </div>
 
           <!-- Question Image Upload -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Question Image (optional)</label>
+            <label class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Question Image (optional)</label>
             <div class="flex items-start space-x-4">
               <div class="flex-1">
                 <input type="file" id="qImage" accept="image/*"
-                       class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 file:cursor-pointer">
-                <p class="text-xs text-gray-400 mt-1">Max 10MB. Supports JPG, PNG, GIF, WebP, SVG</p>
+                       class="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-sm text-surface-900 dark:text-surface-100 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 dark:file:bg-primary-900/30 file:text-primary-600 dark:file:text-primary-400 hover:file:bg-primary-100 file:cursor-pointer">
+                <p class="text-xs text-surface-400 mt-1">Max 10MB. Supports JPG, PNG, GIF, WebP, SVG</p>
               </div>
               <% if (question && question.question_image) { %>
                 <div class="relative" id="currentImageBlock">
-                  <img src="<%= question.question_image %>" class="w-24 h-24 rounded-lg object-cover border" id="currentImage">
+                  <img src="<%= question.question_image %>" class="w-24 h-24 rounded-xl object-cover border border-[var(--card-border)]" id="currentImage">
                   <button type="button" onclick="removeImage()" class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600 cursor-pointer" title="Remove image">x</button>
                 </div>
               <% } %>
             </div>
             <div id="imagePreview" class="mt-2 hidden">
-              <img id="previewImg" class="max-h-40 rounded-lg border">
+              <img id="previewImg" class="max-h-40 rounded-xl border border-[var(--card-border)]">
             </div>
             <input type="hidden" id="removeImageFlag" value="0">
           </div>
 
           <!-- Options -->
           <div id="optionsBlock">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Answer Options</label>
+            <label class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">Answer Options</label>
             <div class="space-y-3">
               <div class="flex items-center space-x-2">
-                <span class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-sm font-bold text-gray-500">A</span>
+                <span class="w-8 h-8 bg-surface-100 dark:bg-surface-800 rounded-xl flex items-center justify-center text-sm font-bold text-surface-500 dark:text-surface-400">A</span>
                 <input type="text" id="qOptA" placeholder="Option A" value="<%= question ? (question.option_a || '') : '' %>"
-                       class="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                       class="flex-1 px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-sm text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                 <label class="flex items-center space-x-1 cursor-pointer">
-                  <input type="radio" name="correct" value="A" <%= question && question.correct_option === 'A' ? 'checked' : '' %> class="text-green-600 cursor-pointer">
-                  <span class="text-xs text-gray-500">Correct</span>
+                  <input type="radio" name="correct" value="A" <%= question && question.correct_option === 'A' ? 'checked' : '' %> class="text-accent-600 cursor-pointer">
+                  <span class="text-xs text-surface-500 dark:text-surface-400">Correct</span>
                 </label>
               </div>
               <div class="flex items-center space-x-2">
-                <span class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-sm font-bold text-gray-500">B</span>
+                <span class="w-8 h-8 bg-surface-100 dark:bg-surface-800 rounded-xl flex items-center justify-center text-sm font-bold text-surface-500 dark:text-surface-400">B</span>
                 <input type="text" id="qOptB" placeholder="Option B" value="<%= question ? (question.option_b || '') : '' %>"
-                       class="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                       class="flex-1 px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-sm text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                 <label class="flex items-center space-x-1 cursor-pointer">
-                  <input type="radio" name="correct" value="B" <%= question && question.correct_option === 'B' ? 'checked' : '' %> class="text-green-600 cursor-pointer">
-                  <span class="text-xs text-gray-500">Correct</span>
+                  <input type="radio" name="correct" value="B" <%= question && question.correct_option === 'B' ? 'checked' : '' %> class="text-accent-600 cursor-pointer">
+                  <span class="text-xs text-surface-500 dark:text-surface-400">Correct</span>
                 </label>
               </div>
               <div class="flex items-center space-x-2">
-                <span class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-sm font-bold text-gray-500">C</span>
+                <span class="w-8 h-8 bg-surface-100 dark:bg-surface-800 rounded-xl flex items-center justify-center text-sm font-bold text-surface-500 dark:text-surface-400">C</span>
                 <input type="text" id="qOptC" placeholder="Option C" value="<%= question ? (question.option_c || '') : '' %>"
-                       class="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                       class="flex-1 px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-sm text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                 <label class="flex items-center space-x-1 cursor-pointer">
-                  <input type="radio" name="correct" value="C" <%= question && question.correct_option === 'C' ? 'checked' : '' %> class="text-green-600 cursor-pointer">
-                  <span class="text-xs text-gray-500">Correct</span>
+                  <input type="radio" name="correct" value="C" <%= question && question.correct_option === 'C' ? 'checked' : '' %> class="text-accent-600 cursor-pointer">
+                  <span class="text-xs text-surface-500 dark:text-surface-400">Correct</span>
                 </label>
               </div>
               <div class="flex items-center space-x-2">
-                <span class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-sm font-bold text-gray-500">D</span>
+                <span class="w-8 h-8 bg-surface-100 dark:bg-surface-800 rounded-xl flex items-center justify-center text-sm font-bold text-surface-500 dark:text-surface-400">D</span>
                 <input type="text" id="qOptD" placeholder="Option D" value="<%= question ? (question.option_d || '') : '' %>"
-                       class="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                       class="flex-1 px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-sm text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                 <label class="flex items-center space-x-1 cursor-pointer">
-                  <input type="radio" name="correct" value="D" <%= question && question.correct_option === 'D' ? 'checked' : '' %> class="text-green-600 cursor-pointer">
-                  <span class="text-xs text-gray-500">Correct</span>
+                  <input type="radio" name="correct" value="D" <%= question && question.correct_option === 'D' ? 'checked' : '' %> class="text-accent-600 cursor-pointer">
+                  <span class="text-xs text-surface-500 dark:text-surface-400">Correct</span>
                 </label>
               </div>
             </div>
           </div>
 
-          <!-- File Upload Settings (for file_upload type) -->
+          <!-- File Upload Settings -->
           <div id="fileUploadBlock" style="display:none">
-            <label class="block text-sm font-medium text-gray-700 mb-2">File Upload Settings</label>
-            <div class="grid grid-cols-2 gap-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <label class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">File Upload Settings</label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
               <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">Allowed File Types</label>
+                <label class="block text-xs font-medium text-surface-600 dark:text-surface-400 mb-1">Allowed File Types</label>
                 <input type="text" id="qAllowedFileTypes" placeholder="pdf,jpg,jpeg,png"
                        value="<%= question ? (question.allowed_file_types || 'pdf,jpg,jpeg,png') : 'pdf,jpg,jpeg,png' %>"
-                       class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                <p class="text-xs text-gray-400 mt-1">Comma-separated extensions</p>
+                       class="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-sm text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                <p class="text-xs text-surface-400 mt-1">Comma-separated extensions</p>
               </div>
               <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">Max File Size (MB)</label>
+                <label class="block text-xs font-medium text-surface-600 dark:text-surface-400 mb-1">Max File Size (MB)</label>
                 <input type="number" id="qMaxFileSize" value="<%= question ? (question.max_file_size_mb || 10) : 10 %>" min="1" max="50"
-                       class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                       class="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-sm text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
               </div>
             </div>
           </div>
 
-          <!-- Summary Writing Settings (for summary_writing type) -->
+          <!-- Summary Writing Settings -->
           <div id="summaryWritingBlock" style="display:none">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Summary Writing Settings</label>
-            <div class="grid grid-cols-2 gap-4 bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <label class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">Summary Writing Settings</label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-4">
               <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">Minimum Word Count (0 = no limit)</label>
+                <label class="block text-xs font-medium text-surface-600 dark:text-surface-400 mb-1">Minimum Word Count (0 = no limit)</label>
                 <input type="number" id="qMinWordCount" value="<%= question ? (question.min_word_count || 0) : 0 %>" min="0"
-                       class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                       class="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-sm text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
               </div>
               <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">Maximum Word Count (0 = no limit)</label>
+                <label class="block text-xs font-medium text-surface-600 dark:text-surface-400 mb-1">Maximum Word Count (0 = no limit)</label>
                 <input type="number" id="qMaxWordCount" value="<%= question ? (question.max_word_count || 0) : 0 %>" min="0"
-                       class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                       class="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-sm text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
               </div>
             </div>
           </div>
 
           <!-- Explanation & Marks -->
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Explanation (shown after exam)</label>
+              <label class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Explanation (shown after exam)</label>
               <textarea id="qExplanation" rows="2" placeholder="Why this answer is correct..."
-                        class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"><%= question ? (question.explanation || '') : '' %></textarea>
+                        class="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-sm text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"><%= question ? (question.explanation || '') : '' %></textarea>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Marks</label>
+              <label class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Marks</label>
               <input type="number" id="qMarks" value="<%= question ? question.marks : 1 %>" min="1"
-                     class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                     class="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-sm text-surface-900 dark:text-surface-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
               <% if (question) { %>
                 <div class="mt-2">
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Sort Order</label>
+                  <label class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">Sort Order</label>
                   <input type="number" id="qOrder" value="<%= question.sort_order %>" min="1"
-                         class="w-full px-3 py-2 border rounded-lg text-sm">
+                         class="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-sm text-surface-900 dark:text-surface-100">
                 </div>
               <% } %>
             </div>
           </div>
 
           <!-- Actions -->
-          <div class="flex items-center justify-between pt-4 border-t">
-            <a href="/admin/exams/<%= exam.id %>" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">
+          <div class="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-[var(--card-border)] gap-3">
+            <a href="/admin/exams/<%= exam.id %>" class="w-full sm:w-auto px-4 py-2 bg-surface-100 dark:bg-surface-800 text-surface-700 dark:text-surface-300 rounded-xl text-sm font-medium hover:bg-surface-200 dark:hover:bg-surface-700 transition text-center">
               Back to Paper
             </a>
-            <div class="flex space-x-2">
+            <div class="flex space-x-2 w-full sm:w-auto">
               <% if (!question) { %>
-                <button type="button" onclick="saveAndAddMore()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition cursor-pointer">
+                <button type="button" onclick="saveAndAddMore()" class="flex-1 sm:flex-none px-4 py-2 bg-surface-100 dark:bg-surface-800 text-surface-700 dark:text-surface-300 rounded-xl text-sm font-medium hover:bg-surface-200 dark:hover:bg-surface-700 transition cursor-pointer">
                   Save & Add Another
                 </button>
               <% } %>
-              <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition cursor-pointer">
+              <button type="submit" class="flex-1 sm:flex-none px-6 py-2 bg-primary-600 dark:bg-primary-500 text-white rounded-xl text-sm font-medium hover:bg-primary-700 dark:hover:bg-primary-400 transition cursor-pointer">
                 <%= question ? 'Update Question' : 'Save Question' %>
               </button>
             </div>
@@ -212,12 +212,10 @@ const examId = <%= exam.id %>;
 const questionId = <%= question ? question.id : 'null' %>;
 let addMore = false;
 
-// Section type map for auto-selecting question type
 const sectionTypeMap = {
   <% sections.forEach(s => { %>'<%= s.id %>': '<%= s.section_type || "mcq" %>',<% }) %>
 };
 
-// Auto-set question type based on selected section
 function syncTypeFromSection() {
   const sectionId = document.getElementById('qSection').value;
   if (sectionId && sectionTypeMap[sectionId]) {
@@ -249,11 +247,8 @@ function buildFormData() {
   fd.append('max_file_size_mb', parseInt(document.getElementById('qMaxFileSize').value) || 10);
   fd.append('min_word_count', parseInt(document.getElementById('qMinWordCount').value) || 0);
   fd.append('max_word_count', parseInt(document.getElementById('qMaxWordCount').value) || 0);
-
   const imageFile = document.getElementById('qImage').files[0];
-  if (imageFile) {
-    fd.append('question_image', imageFile);
-  }
+  if (imageFile) fd.append('question_image', imageFile);
   return fd;
 }
 
@@ -262,7 +257,6 @@ function saveAndAddMore() { addMore = true; document.getElementById('questionFor
 document.getElementById('questionForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const fd = buildFormData();
-
   let url, successRedirect;
   if (questionId) {
     url = `/admin/questions/${questionId}/update`;
@@ -271,10 +265,8 @@ document.getElementById('questionForm').addEventListener('submit', async (e) => 
     url = `/admin/exams/${examId}/questions/create`;
     successRedirect = addMore ? null : `/admin/exams/${examId}`;
   }
-
   const res = await fetch(url, { method: 'POST', body: fd });
   const result = await res.json();
-
   if (result.success) {
     if (addMore) {
       const selectedSection = document.getElementById('qSection').value;
@@ -289,8 +281,8 @@ document.getElementById('questionForm').addEventListener('submit', async (e) => 
       const btn = document.querySelector('[type="submit"]');
       const orig = btn.textContent;
       btn.textContent = 'Saved!';
-      btn.classList.replace('bg-indigo-600', 'bg-green-600');
-      setTimeout(() => { btn.textContent = orig; btn.classList.replace('bg-green-600', 'bg-indigo-600'); }, 1500);
+      btn.classList.replace('bg-primary-600', 'bg-green-600');
+      setTimeout(() => { btn.textContent = orig; btn.classList.replace('bg-green-600', 'bg-primary-600'); }, 1500);
     } else {
       window.location.href = successRedirect;
     }
@@ -299,7 +291,6 @@ document.getElementById('questionForm').addEventListener('submit', async (e) => 
   }
 });
 
-// Image preview
 document.getElementById('qImage').addEventListener('change', (e) => {
   const file = e.target.files[0];
   const preview = document.getElementById('imagePreview');
@@ -321,18 +312,14 @@ function removeImage() {
   if (block) block.remove();
 }
 
-// Toggle options block and type-specific fields
 function toggleOptionsBlock() {
   const qType = document.getElementById('qType').value;
   const optBlock = document.getElementById('optionsBlock');
   const fileBlock = document.getElementById('fileUploadBlock');
   const summaryBlock = document.getElementById('summaryWritingBlock');
-
-  // Hide all type-specific blocks first
   optBlock.style.display = 'none';
   fileBlock.style.display = 'none';
   summaryBlock.style.display = 'none';
-
   if (qType === 'file_upload') {
     fileBlock.style.display = 'block';
   } else if (qType === 'summary_writing') {
@@ -346,11 +333,7 @@ function toggleOptionsBlock() {
 }
 
 document.getElementById('qType').addEventListener('change', toggleOptionsBlock);
-
-// On page load: auto-set question type from section (for new questions only)
-if (!questionId) {
-  syncTypeFromSection();
-}
+if (!questionId) syncTypeFromSection();
 toggleOptionsBlock();
 </script>
 

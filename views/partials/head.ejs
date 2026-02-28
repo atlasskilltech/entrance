@@ -4,13 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= typeof title !== 'undefined' ? title : 'Online Entrance Examination' %></title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/output.css">
-  <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .fade-in { animation: fadeIn 0.3s ease-in; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .pulse { animation: pulse 2s infinite; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-  </style>
+  <script>
+    (function(){
+      var t = localStorage.getItem('theme');
+      if(t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)){
+        document.documentElement.setAttribute('data-theme','dark');
+      }
+    })();
+  </script>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-[var(--bg)] text-[var(--text)] min-h-screen transition-colors duration-200">

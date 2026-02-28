@@ -1,15 +1,15 @@
 <%- include('../partials/head', { title: 'Live Examination' }) %>
 
-<div class="min-h-screen bg-gray-100 flex flex-col" id="examContainer">
+<div class="min-h-screen bg-surface-100 dark:bg-surface-800 flex flex-col" id="examContainer">
   <!-- Top Bar -->
-  <div class="bg-white shadow-sm border-b px-4 py-2 flex items-center justify-between sticky top-0 z-50">
+  <div class="bg-[var(--card)] shadow-sm border-b px-4 py-2 flex items-center justify-between sticky top-0 z-50">
     <div class="flex items-center space-x-3">
-      <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+      <div class="w-8 h-8 bg-primary-600 rounded-xl flex items-center justify-center">
         <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
       </div>
       <div>
-        <h1 class="font-bold text-gray-800 text-sm"><%= session.exam_title %></h1>
-        <p class="text-xs text-gray-500"><%= studentName %></p>
+        <h1 class="font-bold text-surface-900 dark:text-surface-50 text-sm"><%= session.exam_title %></h1>
+        <p class="text-xs text-surface-500 dark:text-surface-400"><%= studentName %></p>
       </div>
     </div>
 
@@ -19,7 +19,7 @@
         <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         <span id="timer" class="font-mono font-bold text-red-600">--:--</span>
       </div>
-      <button onclick="requestFullscreen()" class="p-2 text-gray-500 hover:text-gray-700 transition cursor-pointer" title="Fullscreen">
+      <button onclick="requestFullscreen()" class="p-2 text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-300 transition cursor-pointer" title="Fullscreen">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
       </button>
     </div>
@@ -31,11 +31,11 @@
       <% if (session.question_instructions && session.question_instructions.trim()) { %>
       <!-- Question Instructions Banner -->
       <div class="max-w-3xl mx-auto mb-4">
-        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
           <div class="flex items-start space-x-2">
             <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            <div class="text-sm text-blue-700">
-              <p class="font-semibold text-blue-800 mb-1">Instructions:</p>
+            <div class="text-sm text-blue-700 dark:text-blue-400">
+              <p class="font-semibold text-blue-800 dark:text-blue-300 mb-1">Instructions:</p>
               <% session.question_instructions.trim().split('\n').filter(i => i.trim()).forEach(instruction => { %>
                 <p>&bull; <%= instruction.trim() %></p>
               <% }) %>
@@ -46,13 +46,13 @@
       <% } %>
       <!-- Question Display -->
       <div class="max-w-3xl mx-auto">
-        <div class="bg-white rounded-xl shadow-sm border p-6 mb-4" id="questionCard">
+        <div class="bg-[var(--card)] rounded-2xl shadow-sm border border-[var(--card-border)] p-6 mb-4" id="questionCard">
           <div class="flex items-center justify-between mb-4">
-            <span class="text-sm font-medium text-indigo-600" id="questionSection">Section</span>
-            <span class="text-sm text-gray-500" id="questionNumber">Question 1 of <%= session.total_questions %></span>
+            <span class="text-sm font-medium text-primary-500 dark:text-primary-400" id="questionSection">Section</span>
+            <span class="text-sm text-surface-500 dark:text-surface-400" id="questionNumber">Question 1 of <%= session.total_questions %></span>
           </div>
 
-          <h2 class="text-lg font-semibold text-gray-800 mb-6" id="questionText">Loading...</h2>
+          <h2 class="text-lg font-semibold text-surface-900 dark:text-surface-50 mb-6" id="questionText">Loading...</h2>
 
           <div id="questionImageContainer" class="mb-4 hidden">
             <img id="questionImage" class="rounded-lg max-w-full max-h-80 border" src="">
@@ -64,28 +64,28 @@
 
           <!-- Long Answer / Descriptive textarea -->
           <div id="longAnswerContainer" class="hidden">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Write your answer below:</label>
+            <label class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">Write your answer below:</label>
             <textarea id="longAnswerText" rows="10" placeholder="Type your detailed answer here..."
-                      class="w-full px-4 py-3 border-2 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-y"
+                      class="w-full px-4 py-3 border-2 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-y"
                       oninput="autoSaveLongAnswer()"></textarea>
             <div class="flex justify-between items-center mt-2">
-              <p class="text-xs text-gray-400" id="charCount">0 characters</p>
+              <p class="text-xs text-surface-400 dark:text-surface-500" id="charCount">0 characters</p>
               <p class="text-xs text-green-600 hidden" id="saveIndicator">Saved</p>
             </div>
           </div>
 
           <!-- File Upload Container (for file_upload question type) -->
           <div id="fileUploadContainer" class="hidden">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Upload your file:</label>
-            <div id="fileDropZone" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-indigo-400 transition cursor-pointer"
-                 ondragover="event.preventDefault(); this.classList.add('border-indigo-500','bg-indigo-50')"
-                 ondragleave="this.classList.remove('border-indigo-500','bg-indigo-50')"
+            <label class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">Upload your file:</label>
+            <div id="fileDropZone" class="border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl p-8 text-center hover:border-primary-400 transition cursor-pointer"
+                 ondragover="event.preventDefault(); this.classList.add('border-primary-500','bg-primary-50')"
+                 ondragleave="this.classList.remove('border-primary-500','bg-primary-50')"
                  ondrop="handleFileDrop(event)"
                  onclick="document.getElementById('fileInput').click()">
-              <svg class="w-10 h-10 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-              <p class="text-sm text-gray-600 font-medium">Drag & drop your file here</p>
-              <p class="text-xs text-gray-400 mt-1">or click to browse</p>
-              <p class="text-xs text-gray-400 mt-2" id="fileConstraints">Accepted: PDF, JPG, PNG | Max: 10MB</p>
+              <svg class="w-10 h-10 text-surface-400 dark:text-surface-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+              <p class="text-sm text-surface-600 dark:text-surface-400 font-medium">Drag & drop your file here</p>
+              <p class="text-xs text-surface-400 dark:text-surface-500 mt-1">or click to browse</p>
+              <p class="text-xs text-surface-400 dark:text-surface-500 mt-2" id="fileConstraints">Accepted: PDF, JPG, PNG | Max: 10MB</p>
             </div>
             <input type="file" id="fileInput" class="hidden" onchange="handleFileSelect(this.files[0])">
 
@@ -103,23 +103,23 @@
             <!-- Upload progress -->
             <div id="uploadProgress" class="hidden mt-3">
               <div class="flex items-center space-x-2">
-                <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div id="uploadProgressBar" class="h-full bg-indigo-500 rounded-full transition-all" style="width: 0%"></div>
+                <div class="flex-1 h-2 bg-surface-200 dark:bg-surface-700 rounded-full overflow-hidden">
+                  <div id="uploadProgressBar" class="h-full bg-primary-500 rounded-full transition-all" style="width: 0%"></div>
                 </div>
-                <span class="text-xs text-gray-500" id="uploadProgressText">Uploading...</span>
+                <span class="text-xs text-surface-500 dark:text-surface-400" id="uploadProgressText">Uploading...</span>
               </div>
             </div>
           </div>
 
           <!-- Summary Writing Container (for summary_writing question type) -->
           <div id="summaryWritingContainer" class="hidden">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Write your summary:</label>
+            <label class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">Write your summary:</label>
             <textarea id="summaryText" rows="12" placeholder="Write your summary here..."
-                      class="w-full px-4 py-3 border-2 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-y"
+                      class="w-full px-4 py-3 border-2 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-y"
                       oninput="autoSaveSummary()"></textarea>
             <div class="flex justify-between items-center mt-2">
               <div class="flex space-x-4">
-                <p class="text-xs text-gray-400" id="wordCount">0 words</p>
+                <p class="text-xs text-surface-400 dark:text-surface-500" id="wordCount">0 words</p>
                 <p class="text-xs" id="wordLimitInfo"></p>
               </div>
               <p class="text-xs text-green-600 hidden" id="summarySaveIndicator">Saved</p>
@@ -131,21 +131,21 @@
         <div class="flex items-center justify-between">
           <div class="flex space-x-2">
             <button onclick="markForReview()" id="reviewBtn"
-                    class="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg text-sm font-medium hover:bg-amber-200 transition cursor-pointer">
+                    class="px-4 py-2 bg-amber-100 text-amber-700 dark:text-amber-400 rounded-xl text-sm font-medium hover:bg-amber-200 transition cursor-pointer">
               Mark for Review
             </button>
             <button onclick="clearAnswer()"
-                    class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200 transition cursor-pointer">
+                    class="px-4 py-2 bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-400 rounded-xl text-sm font-medium hover:bg-surface-200 dark:hover:bg-surface-700 transition cursor-pointer">
               Clear Response
             </button>
           </div>
           <div class="flex space-x-2">
             <button onclick="prevQuestion()"
-                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300 transition cursor-pointer">
+                    class="px-4 py-2 bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 rounded-xl text-sm font-medium hover:bg-surface-300 dark:hover:bg-surface-600 transition cursor-pointer">
               &laquo; Previous
             </button>
             <button onclick="nextQuestion()"
-                    class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition cursor-pointer">
+                    class="px-4 py-2 bg-primary-600 dark:bg-primary-500 text-white rounded-xl text-sm font-medium hover:bg-primary-700 dark:hover:bg-primary-400 transition cursor-pointer">
               Next &raquo;
             </button>
           </div>
@@ -154,10 +154,10 @@
     </div>
 
     <!-- Right Sidebar -->
-    <div class="w-72 bg-white border-l overflow-y-auto flex flex-col">
+    <div class="w-72 bg-[var(--card)] border-l overflow-y-auto flex flex-col">
       <!-- Webcam Feed -->
       <div class="p-3 border-b">
-        <div class="bg-gray-900 rounded-lg overflow-hidden relative" style="height: 120px">
+        <div class="bg-surface-950 rounded-lg overflow-hidden relative" style="height: 120px">
           <video id="proctorCam" autoplay playsinline muted class="w-full h-full object-cover"></video>
           <canvas id="faceDetectCanvas" class="hidden"></canvas>
           <div class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full pulse"></div>
@@ -171,7 +171,7 @@
 
       <!-- Question Navigation Panel -->
       <div class="p-3 border-b">
-        <h3 class="font-semibold text-gray-800 text-sm mb-2">Question Navigation</h3>
+        <h3 class="font-semibold text-surface-900 dark:text-surface-50 text-sm mb-2">Question Navigation</h3>
         <div class="grid grid-cols-5 gap-1.5" id="questionNav">
           <% for (let i = 0; i < questions.length; i++) { %>
             <button onclick="goToQuestion(<%= i %>)"
@@ -185,63 +185,63 @@
         <!-- Legend -->
         <div class="flex flex-wrap gap-2 mt-3 text-xs">
           <div class="flex items-center space-x-1">
-            <div class="w-3 h-3 rounded bg-green-500"></div><span class="text-gray-500">Answered</span>
+            <div class="w-3 h-3 rounded bg-green-500"></div><span class="text-surface-500 dark:text-surface-400">Answered</span>
           </div>
           <div class="flex items-center space-x-1">
-            <div class="w-3 h-3 rounded bg-gray-200 border"></div><span class="text-gray-500">Not Answered</span>
+            <div class="w-3 h-3 rounded bg-surface-200 dark:bg-surface-700 border border-surface-300 dark:border-surface-600"></div><span class="text-surface-500 dark:text-surface-400">Not Answered</span>
           </div>
           <div class="flex items-center space-x-1">
-            <div class="w-3 h-3 rounded bg-amber-400"></div><span class="text-gray-500">Review</span>
+            <div class="w-3 h-3 rounded bg-amber-400"></div><span class="text-surface-500 dark:text-surface-400">Review</span>
           </div>
           <div class="flex items-center space-x-1">
-            <div class="w-3 h-3 rounded bg-indigo-500"></div><span class="text-gray-500">Current</span>
+            <div class="w-3 h-3 rounded bg-primary-500"></div><span class="text-surface-500 dark:text-surface-400">Current</span>
           </div>
         </div>
       </div>
 
       <!-- Stats -->
       <div class="p-3 border-b">
-        <h3 class="font-semibold text-gray-800 text-sm mb-2">Progress</h3>
+        <h3 class="font-semibold text-surface-900 dark:text-surface-50 text-sm mb-2">Progress</h3>
         <div class="space-y-1.5 text-sm">
-          <div class="flex justify-between"><span class="text-gray-500">Total Questions</span><span class="font-medium" id="statTotal"><%= questions.length %></span></div>
-          <div class="flex justify-between"><span class="text-gray-500">Answered</span><span class="font-medium text-green-600" id="statAnswered">0</span></div>
-          <div class="flex justify-between"><span class="text-gray-500">Not Answered</span><span class="font-medium text-gray-600" id="statPending"><%= questions.length %></span></div>
-          <div class="flex justify-between"><span class="text-gray-500">Marked for Review</span><span class="font-medium text-amber-600" id="statReview">0</span></div>
+          <div class="flex justify-between"><span class="text-surface-500 dark:text-surface-400">Total Questions</span><span class="font-medium" id="statTotal"><%= questions.length %></span></div>
+          <div class="flex justify-between"><span class="text-surface-500 dark:text-surface-400">Answered</span><span class="font-medium text-green-600" id="statAnswered">0</span></div>
+          <div class="flex justify-between"><span class="text-surface-500 dark:text-surface-400">Not Answered</span><span class="font-medium text-surface-600 dark:text-surface-400" id="statPending"><%= questions.length %></span></div>
+          <div class="flex justify-between"><span class="text-surface-500 dark:text-surface-400">Marked for Review</span><span class="font-medium text-amber-600" id="statReview">0</span></div>
         </div>
       </div>
 
       <!-- Violation Summary -->
       <div class="p-3 border-b">
-        <h3 class="font-semibold text-gray-800 text-sm mb-2">Violation Summary</h3>
+        <h3 class="font-semibold text-surface-900 dark:text-surface-50 text-sm mb-2">Violation Summary</h3>
         <div class="space-y-1.5 text-sm">
           <div class="flex justify-between items-center">
-            <span class="text-gray-500">Tab Switch</span>
+            <span class="text-surface-500 dark:text-surface-400">Tab Switch</span>
             <span class="font-medium violation-count" id="vTabSwitch" data-count="<%= violationMap.tab_switch || 0 %>"><%= violationMap.tab_switch || 0 %></span>
           </div>
           <div class="flex justify-between items-center">
-            <span class="text-gray-500">Copy</span>
+            <span class="text-surface-500 dark:text-surface-400">Copy</span>
             <span class="font-medium violation-count" id="vCopy" data-count="<%= violationMap.copy || 0 %>"><%= violationMap.copy || 0 %></span>
           </div>
           <div class="flex justify-between items-center">
-            <span class="text-gray-500">Paste</span>
+            <span class="text-surface-500 dark:text-surface-400">Paste</span>
             <span class="font-medium violation-count" id="vPaste" data-count="<%= violationMap.paste || 0 %>"><%= violationMap.paste || 0 %></span>
           </div>
           <div class="flex justify-between items-center">
-            <span class="text-gray-500">Face Not Visible</span>
+            <span class="text-surface-500 dark:text-surface-400">Face Not Visible</span>
             <span class="font-medium violation-count" id="vFaceNotVisible" data-count="<%= violationMap.face_not_visible || 0 %>"><%= violationMap.face_not_visible || 0 %></span>
           </div>
           <div class="flex justify-between items-center">
-            <span class="text-gray-500">Multiple Faces</span>
+            <span class="text-surface-500 dark:text-surface-400">Multiple Faces</span>
             <span class="font-medium violation-count" id="vMultipleFaces" data-count="<%= violationMap.multiple_faces || 0 %>"><%= violationMap.multiple_faces || 0 %></span>
           </div>
           <div class="flex justify-between items-center">
-            <span class="text-gray-500">Other Alerts</span>
+            <span class="text-surface-500 dark:text-surface-400">Other Alerts</span>
             <span class="font-medium violation-count" id="vOther" data-count="0">0</span>
           </div>
         </div>
         <!-- Risk Indicator -->
         <div class="mt-3">
-          <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div class="h-2 bg-surface-200 dark:bg-surface-700 rounded-full overflow-hidden">
             <div id="riskBar" class="h-full bg-green-500 rounded-full transition-all duration-500" style="width: 0%"></div>
           </div>
           <p class="text-xs text-center mt-1" id="riskLabel">
@@ -253,7 +253,7 @@
       <!-- Submit Button -->
       <div class="p-3 mt-auto">
         <button onclick="submitExam(false)"
-                class="w-full py-2.5 bg-red-600 text-white rounded-lg font-semibold text-sm hover:bg-red-700 transition cursor-pointer">
+                class="w-full py-2.5 bg-red-600 text-white rounded-xl font-semibold text-sm hover:bg-red-700 transition cursor-pointer">
           Submit Exam
         </button>
       </div>
@@ -262,29 +262,29 @@
 </div>
 
 <!-- Warning Modal -->
-<div id="warningModal" class="hidden fixed inset-0 bg-black/50 z-[100] flex items-center justify-center">
-  <div class="bg-white rounded-xl shadow-2xl p-6 max-w-sm mx-4 text-center">
+<div id="warningModal" class="hidden fixed inset-0 bg-black/60 dark:bg-black/70 z-[100] flex items-center justify-center">
+  <div class="bg-[var(--card)] rounded-2xl shadow-2xl border border-[var(--card-border)] p-6 max-w-sm mx-4 text-center">
     <div class="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
       <svg class="w-7 h-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
     </div>
-    <h3 class="font-bold text-gray-800 text-lg mb-2" id="warningTitle">Warning!</h3>
-    <p class="text-gray-600 text-sm mb-4" id="warningMessage">A violation has been detected.</p>
-    <button onclick="dismissWarning()" class="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition cursor-pointer">
+    <h3 class="font-bold text-surface-900 dark:text-surface-50 text-lg mb-2" id="warningTitle">Warning!</h3>
+    <p class="text-surface-600 dark:text-surface-400 text-sm mb-4" id="warningMessage">A violation has been detected.</p>
+    <button onclick="dismissWarning()" class="px-6 py-2 bg-primary-600 dark:bg-primary-500 text-white rounded-xl font-medium hover:bg-primary-700 dark:hover:bg-primary-400 transition cursor-pointer">
       I Understand
     </button>
   </div>
 </div>
 
 <!-- Submit Confirmation Modal -->
-<div id="submitModal" class="hidden fixed inset-0 bg-black/50 z-[100] flex items-center justify-center">
-  <div class="bg-white rounded-xl shadow-2xl p-6 max-w-sm mx-4 text-center">
-    <h3 class="font-bold text-gray-800 text-lg mb-2">Submit Examination?</h3>
-    <p class="text-gray-600 text-sm mb-4" id="submitSummary">Are you sure you want to submit?</p>
+<div id="submitModal" class="hidden fixed inset-0 bg-black/60 dark:bg-black/70 z-[100] flex items-center justify-center">
+  <div class="bg-[var(--card)] rounded-2xl shadow-2xl border border-[var(--card-border)] p-6 max-w-sm mx-4 text-center">
+    <h3 class="font-bold text-surface-900 dark:text-surface-50 text-lg mb-2">Submit Examination?</h3>
+    <p class="text-surface-600 dark:text-surface-400 text-sm mb-4" id="submitSummary">Are you sure you want to submit?</p>
     <div class="flex space-x-3 justify-center">
-      <button onclick="closeSubmitModal()" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition cursor-pointer">
+      <button onclick="closeSubmitModal()" class="px-6 py-2 bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 rounded-xl font-medium hover:bg-surface-300 dark:hover:bg-surface-600 transition cursor-pointer">
         Cancel
       </button>
-      <button onclick="confirmSubmit()" class="px-6 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition cursor-pointer">
+      <button onclick="confirmSubmit()" class="px-6 py-2 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition cursor-pointer">
         Confirm Submit
       </button>
     </div>
@@ -425,14 +425,14 @@ function renderQuestion() {
       if (!opt.text) return;
       const selected = answers[q.id] === opt.key;
       const div = document.createElement('div');
-      div.className = `p-4 border-2 rounded-xl cursor-pointer transition hover:border-indigo-300 ${selected ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200'}`;
+      div.className = `p-4 border-2 rounded-xl cursor-pointer transition hover:border-primary-300 ${selected ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-surface-200 dark:border-surface-700'}`;
       div.onclick = () => selectOption(q.id, opt.key);
       div.innerHTML = `
         <div class="flex items-center space-x-3">
-          <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-bold ${selected ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-gray-300 text-gray-500'}">
+          <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-bold ${selected ? 'border-primary-500 bg-primary-500 text-white' : 'border-surface-300 dark:border-surface-600 text-surface-500 dark:text-surface-400'}">
             ${opt.key}
           </div>
-          <span class="${selected ? 'text-indigo-700 font-medium' : 'text-gray-700'}">${opt.text}</span>
+          <span class="${selected ? 'text-primary-700 dark:text-primary-400 font-medium' : 'text-surface-700 dark:text-surface-300'}">${opt.text}</span>
         </div>
       `;
       optionsContainer.appendChild(div);
@@ -512,13 +512,13 @@ function updateNavigation() {
     const hasAnswer = answers[q.id] || (textAnswers[q.id] && textAnswers[q.id].trim().length > 0) || fileAnswers[q.id];
     let cls = 'w-9 h-9 rounded-lg text-xs font-medium border transition cursor-pointer question-nav-btn ';
     if (i === currentIndex) {
-      cls += 'bg-indigo-500 text-white border-indigo-500';
+      cls += 'bg-primary-500 text-white border-primary-500';
     } else if (reviewed[q.id]) {
       cls += 'bg-amber-400 text-white border-amber-400';
     } else if (hasAnswer) {
       cls += 'bg-green-500 text-white border-green-500';
     } else {
-      cls += 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200';
+      cls += 'bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-400 border-surface-200 dark:border-surface-700 hover:bg-surface-200 dark:hover:bg-surface-700';
     }
     btn.className = cls;
   });
@@ -549,7 +549,7 @@ function saveAnswer(qId, option, answerText, review) {
 // ==================== FILE UPLOAD ====================
 function handleFileDrop(e) {
   e.preventDefault();
-  e.currentTarget.classList.remove('border-indigo-500', 'bg-indigo-50');
+  e.currentTarget.classList.remove('border-primary-500', 'bg-primary-50');
   const file = e.dataTransfer.files[0];
   if (file) handleFileSelect(file);
 }

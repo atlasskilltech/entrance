@@ -1,1 +1,90 @@
 @import "tailwindcss";
+
+/* Dark mode via data-theme attribute */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme {
+  /* Primary - Deep Navy Blue (seed: HSL 228 100% 11%) */
+  --color-primary-50: #eef1ff;
+  --color-primary-100: #dde4ff;
+  --color-primary-200: #b3bfff;
+  --color-primary-300: #8499ff;
+  --color-primary-400: #5570f0;
+  --color-primary-500: #3350d9;
+  --color-primary-600: #1a3abf;
+  --color-primary-700: #0d2a9e;
+  --color-primary-800: #061d7a;
+  --color-primary-900: #000b38;
+  --color-primary-950: #000520;
+
+  /* Accent - Lime Green (seed: HSL 80 89% 40%) */
+  --color-accent-50: #f4fce8;
+  --color-accent-100: #e5f7c5;
+  --color-accent-200: #ccef90;
+  --color-accent-300: #aee252;
+  --color-accent-400: #96d72a;
+  --color-accent-500: #78b80b;
+  --color-accent-600: #5d9307;
+  --color-accent-700: #476f0a;
+  --color-accent-800: #3a580e;
+  --color-accent-900: #324a10;
+  --color-accent-950: #172903;
+
+  /* Surface tokens (light defaults, overridden in dark) */
+  --color-surface-50: #f8f9fc;
+  --color-surface-100: #f1f3f9;
+  --color-surface-200: #e5e8f0;
+  --color-surface-300: #d1d5e0;
+  --color-surface-400: #9ba3b5;
+  --color-surface-500: #6b7488;
+  --color-surface-600: #4a5268;
+  --color-surface-700: #353c4e;
+  --color-surface-800: #1e2333;
+  --color-surface-900: #151825;
+  --color-surface-950: #0c0e18;
+}
+
+/* Base theme variables */
+:root {
+  --primary: 228 100% 11%;
+  --accent: 80 89% 40%;
+  --bg: var(--color-surface-50);
+  --card: #ffffff;
+  --card-border: var(--color-surface-200);
+  --text: var(--color-primary-950);
+  --text-muted: var(--color-surface-500);
+  --input-bg: #ffffff;
+  --input-border: var(--color-surface-300);
+}
+
+[data-theme="dark"] {
+  --bg: var(--color-surface-950);
+  --card: var(--color-surface-900);
+  --card-border: var(--color-surface-700);
+  --text: var(--color-surface-100);
+  --text-muted: var(--color-surface-400);
+  --input-bg: var(--color-surface-800);
+  --input-border: var(--color-surface-600);
+}
+
+/* Body base */
+body {
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Animations */
+.fade-in { animation: fadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.pulse { animation: pulse 2s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+.slide-in { animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+@keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-surface-300); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-surface-400); }
+[data-theme="dark"] ::-webkit-scrollbar-thumb { background: var(--color-surface-600); }
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: var(--color-surface-500); }
