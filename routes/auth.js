@@ -76,7 +76,7 @@ router.get('/auth/token/:token', async (req, res) => {
       `SELECT t.*, s.id as student_id, s.name, s.application_id
        FROM ent_login_tokens t
        JOIN ent_students s ON t.student_id = s.id
-       WHERE t.token = ? AND t.expires_at > NOW() AND t.used_at IS NULL`,
+       WHERE t.token = ? AND t.expires_at > NOW()`,
       [req.params.token]
     );
 

@@ -681,7 +681,7 @@ router.post('/admin/students/:id/reassign-test', isAdminAuthenticated, async (re
         const [exams] = await db.query('SELECT * FROM ent_exams WHERE id = ?', [exam_id]);
         if (exams.length > 0) {
           const token = uuidv4();
-          const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+          const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
           await db.query(
             'INSERT INTO ent_login_tokens (student_id, token, exam_id, expires_at) VALUES (?, ?, ?, ?)',
             [studentId, token, exam_id, expiresAt]
@@ -786,7 +786,7 @@ router.post('/admin/exams/:examId/assign', isAdminAuthenticated, async (req, res
         try {
           // Generate unique token (expires in 72 hours)
           const token = uuidv4();
-          const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+          const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
           await db.query(
             'INSERT INTO ent_login_tokens (student_id, token, exam_id, expires_at) VALUES (?, ?, ?, ?)',
@@ -874,7 +874,7 @@ router.post('/admin/exams/:examId/send-emails', isAdminAuthenticated, async (req
       try {
         // Generate unique token (expires in 72 hours)
         const token = uuidv4();
-        const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
         await db.query(
           'INSERT INTO ent_login_tokens (student_id, token, exam_id, expires_at) VALUES (?, ?, ?, ?)',
