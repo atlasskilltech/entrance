@@ -142,6 +142,8 @@ let fullTranscript = '';
 let faceDetector = null;
 let faceDetectionLoop = null;
 let faceIsCentered = false;
+let micAttempts = 0;
+let audioDetected = false;
 
 // Expected text for speech validation
 const expectedText = "hi i am <%= studentName.replace(/'/g, "\\'") %> and i am ready for this test";
@@ -158,22 +160,27 @@ function checkSpeechMatch(spoken) {
   const expectedWords = expectedNorm.split(' ');
   const spokenWords = spokenNorm.split(' ');
 
-  // Required words that MUST be present: student name words, "ready", "test"
-  const studentName = normalize('<%= studentName %>');
-  const nameWords = studentName.split(' ');
-  const requiredWords = [...nameWords, 'ready', 'test'];
-  const missingRequired = requiredWords.filter(w => !spokenWords.includes(w));
-  if (missingRequired.length > 0) {
-    return { score: 0, passed: false, missing: missingRequired };
-  }
+  // Core words that should be present (not name - speech recognition often fails with names)
+  const coreWords = ['ready', 'test'];
+  const missingCore = coreWords.filter(w => !spokenWords.includes(w));
 
-  // Count how many expected words appear in spoken text
+  // Count how many expected words appear in spoken text (excluding name for scoring)
   let matched = 0;
   for (const word of expectedWords) {
     if (spokenWords.includes(word)) matched++;
   }
   const score = matched / expectedWords.length;
-  return { score, passed: score >= 0.7, missing: [] };
+
+  // Pass if: core words present and reasonable match, OR high overall match
+  if (missingCore.length === 0 && score >= 0.4) {
+    return { score, passed: true, missing: [] };
+  }
+  if (score >= 0.6) {
+    return { score, passed: true, missing: [] };
+  }
+
+  // Fail - report missing core words
+  return { score, passed: false, missing: missingCore.length > 0 ? missingCore : ['more words from the phrase'] };
 }
 
 // Initialize webcam
@@ -381,6 +388,7 @@ function startRecording() {
   audioChunks = [];
   fullTranscript = '';
   micDone = false;
+  audioDetected = false;
 
   // Reset speech UI
   document.getElementById('speechTextBox').classList.add('hidden');
@@ -391,9 +399,20 @@ function startRecording() {
   mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
   mediaRecorder.onstop = () => {
     // Validate speech after stopping
+    if (audioLevelChecker) { clearInterval(audioLevelChecker); audioLevelChecker = null; }
     validateSpeech();
   };
   mediaRecorder.start();
+
+  // Monitor audio levels to detect if mic is picking up sound
+  var audioLevelChecker = setInterval(function() {
+    if (!analyser) return;
+    analyser.getByteFrequencyData(dataArray);
+    var sum = 0;
+    for (var i = 0; i < dataArray.length; i++) sum += dataArray[i];
+    var avg = sum / dataArray.length;
+    if (avg > 10) audioDetected = true;
+  }, 200);
 
   // Start speech recognition
   speechRecognition = initSpeechRecognition();
@@ -421,17 +440,27 @@ function stopRecording() {
 }
 
 function validateSpeech() {
+  micAttempts++;
   const matchBox = document.getElementById('speechMatchBox');
   matchBox.classList.remove('hidden');
 
   if (!fullTranscript || fullTranscript.trim().length === 0) {
-    // No speech detected
+    // No speech detected - but check if audio was detected (mic works)
     micDone = false;
-    matchBox.className = 'rounded-lg p-3 mb-3 text-sm font-medium text-center bg-red-50 border border-red-200 text-red-700';
-    matchBox.textContent = 'No speech detected. Please try again.';
-    document.getElementById('micStatus').textContent = 'Speech not detected - try again';
-    document.getElementById('micStatus').className = 'mt-2 text-sm text-center text-red-500 font-medium';
-    enableRetryRecording();
+    if (audioDetected && micAttempts >= 3) {
+      // Microphone works (audio detected) but speech recognition failed after 3 attempts
+      micDone = true;
+      matchBox.className = 'rounded-lg p-3 mb-3 text-sm font-medium text-center bg-green-50 border border-green-200 text-green-700';
+      matchBox.textContent = 'Microphone verified (audio detected)';
+      document.getElementById('micStatus').textContent = 'Microphone working - verified!';
+      document.getElementById('micStatus').className = 'mt-2 text-sm text-center text-green-600 font-medium';
+    } else {
+      matchBox.className = 'rounded-lg p-3 mb-3 text-sm font-medium text-center bg-red-50 border border-red-200 text-red-700';
+      matchBox.textContent = 'No speech detected. Please speak clearly and try again.' + (micAttempts >= 2 ? ' (Attempt ' + micAttempts + '/3)' : '');
+      document.getElementById('micStatus').textContent = 'Speech not detected - try again';
+      document.getElementById('micStatus').className = 'mt-2 text-sm text-center text-red-500 font-medium';
+      enableRetryRecording();
+    }
     checkReady();
     return;
   }
@@ -440,20 +469,27 @@ function validateSpeech() {
   const matchPercent = Math.round(result.score * 100);
 
   if (result.passed) {
-    // Good match with all required words present
+    // Good match
     micDone = true;
     matchBox.className = 'rounded-lg p-3 mb-3 text-sm font-medium text-center bg-green-50 border border-green-200 text-green-700';
-    matchBox.innerHTML = `Speech verified (${matchPercent}% match)`;
+    matchBox.innerHTML = 'Speech verified (' + matchPercent + '% match)';
     document.getElementById('micStatus').textContent = 'Voice verification passed!';
+    document.getElementById('micStatus').className = 'mt-2 text-sm text-center text-green-600 font-medium';
+  } else if (micAttempts >= 3 && fullTranscript.trim().length > 0) {
+    // After 3 attempts, if we got some speech, accept it (mic is working)
+    micDone = true;
+    matchBox.className = 'rounded-lg p-3 mb-3 text-sm font-medium text-center bg-green-50 border border-green-200 text-green-700';
+    matchBox.textContent = 'Microphone verified (speech detected)';
+    document.getElementById('micStatus').textContent = 'Microphone working - verified!';
     document.getElementById('micStatus').className = 'mt-2 text-sm text-center text-green-600 font-medium';
   } else {
     // Failed - show what went wrong
     micDone = false;
     matchBox.className = 'rounded-lg p-3 mb-3 text-sm font-medium text-center bg-red-50 border border-red-200 text-red-700';
     if (result.missing.length > 0) {
-      matchBox.innerHTML = `Missing required words: <strong>${result.missing.join(', ')}</strong>. Please read the exact text shown above.`;
+      matchBox.innerHTML = 'Missing words: <strong>' + result.missing.join(', ') + '</strong>. Please read the text above.' + (micAttempts >= 2 ? ' (Attempt ' + micAttempts + '/3)' : '');
     } else {
-      matchBox.innerHTML = `Speech did not match (${matchPercent}% match). Please read the exact text and try again.`;
+      matchBox.innerHTML = 'Speech did not match (' + matchPercent + '% match). Try again.' + (micAttempts >= 2 ? ' (Attempt ' + micAttempts + '/3)' : '');
     }
     document.getElementById('micStatus').textContent = 'Text did not match - try again';
     document.getElementById('micStatus').className = 'mt-2 text-sm text-center text-red-500 font-medium';
