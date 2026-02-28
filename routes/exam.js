@@ -204,7 +204,7 @@ router.post('/exam/save-photo', isStudentAuthenticated, hasActiveSession, upload
 router.get('/exam/rules', isStudentAuthenticated, hasActiveSession, async (req, res) => {
   try {
     const [sessions] = await db.query(
-      'SELECT es.*, e.title as exam_title, e.duration_minutes, e.total_questions FROM ent_sessions es JOIN ent_exams e ON es.exam_id = e.id WHERE es.id = ?',
+      'SELECT es.*, e.title as exam_title, e.duration_minutes, e.total_questions, e.exam_rules, e.question_instructions FROM ent_sessions es JOIN ent_exams e ON es.exam_id = e.id WHERE es.id = ?',
       [req.session.examSessionId]
     );
     if (sessions.length === 0) return res.redirect('/dashboard');
@@ -244,7 +244,7 @@ router.get('/exam/live', isStudentAuthenticated, hasActiveSession, async (req, r
   try {
     const [sessions] = await db.query(
       `SELECT es.*, e.title as exam_title, e.duration_minutes, e.total_questions,
-              e.max_tab_switches, e.max_violations, e.auto_save_interval
+              e.max_tab_switches, e.max_violations, e.auto_save_interval, e.question_instructions
        FROM ent_sessions es JOIN ent_exams e ON es.exam_id = e.id WHERE es.id = ?`,
       [req.session.examSessionId]
     );

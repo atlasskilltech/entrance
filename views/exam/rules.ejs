@@ -52,40 +52,61 @@
     <div class="space-y-3 mb-6">
       <h3 class="font-bold text-gray-800">Examination Rules:</h3>
       <div class="space-y-2 text-sm text-gray-700">
-        <div class="flex items-start space-x-2">
-          <span class="text-indigo-600 font-bold mt-0.5">1.</span>
-          <p>This is a <strong>proctored examination</strong>. Your webcam, microphone, and screen activity will be monitored throughout.</p>
-        </div>
-        <div class="flex items-start space-x-2">
-          <span class="text-indigo-600 font-bold mt-0.5">2.</span>
-          <p>Do <strong>not switch tabs</strong> or leave the exam window. Each tab switch will be recorded.</p>
-        </div>
-        <div class="flex items-start space-x-2">
-          <span class="text-indigo-600 font-bold mt-0.5">3.</span>
-          <p><strong>Copy and paste</strong> actions are strictly prohibited and will be logged.</p>
-        </div>
-        <div class="flex items-start space-x-2">
-          <span class="text-indigo-600 font-bold mt-0.5">4.</span>
-          <p>The exam must be taken in <strong>full-screen mode</strong>. Exiting fullscreen will trigger a warning.</p>
-        </div>
-        <div class="flex items-start space-x-2">
-          <span class="text-indigo-600 font-bold mt-0.5">5.</span>
-          <p>Your <strong>face must be visible</strong> at all times. Multiple faces or absence will be flagged.</p>
-        </div>
-        <div class="flex items-start space-x-2">
-          <span class="text-indigo-600 font-bold mt-0.5">6.</span>
-          <p>Answers are <strong>auto-saved</strong> every 15-30 seconds. The exam will auto-submit when time runs out.</p>
-        </div>
-        <div class="flex items-start space-x-2">
-          <span class="text-indigo-600 font-bold mt-0.5">7.</span>
-          <p>Excessive violations may result in <strong>automatic disqualification</strong>.</p>
-        </div>
-        <div class="flex items-start space-x-2">
-          <span class="text-indigo-600 font-bold mt-0.5">8.</span>
-          <p>Your IP address and all activity will be logged with timestamps for review.</p>
-        </div>
+        <% if (session.exam_rules && session.exam_rules.trim()) { %>
+          <% session.exam_rules.trim().split('\n').filter(r => r.trim()).forEach((rule, idx) => { %>
+            <div class="flex items-start space-x-2">
+              <span class="text-indigo-600 font-bold mt-0.5"><%= idx + 1 %>.</span>
+              <p><%= rule.trim() %></p>
+            </div>
+          <% }) %>
+        <% } else { %>
+          <div class="flex items-start space-x-2">
+            <span class="text-indigo-600 font-bold mt-0.5">1.</span>
+            <p>This is a <strong>proctored examination</strong>. Your webcam, microphone, and screen activity will be monitored throughout.</p>
+          </div>
+          <div class="flex items-start space-x-2">
+            <span class="text-indigo-600 font-bold mt-0.5">2.</span>
+            <p>Do <strong>not switch tabs</strong> or leave the exam window. Each tab switch will be recorded.</p>
+          </div>
+          <div class="flex items-start space-x-2">
+            <span class="text-indigo-600 font-bold mt-0.5">3.</span>
+            <p><strong>Copy and paste</strong> actions are strictly prohibited and will be logged.</p>
+          </div>
+          <div class="flex items-start space-x-2">
+            <span class="text-indigo-600 font-bold mt-0.5">4.</span>
+            <p>The exam must be taken in <strong>full-screen mode</strong>. Exiting fullscreen will trigger a warning.</p>
+          </div>
+          <div class="flex items-start space-x-2">
+            <span class="text-indigo-600 font-bold mt-0.5">5.</span>
+            <p>Your <strong>face must be visible</strong> at all times. Multiple faces or absence will be flagged.</p>
+          </div>
+          <div class="flex items-start space-x-2">
+            <span class="text-indigo-600 font-bold mt-0.5">6.</span>
+            <p>Answers are <strong>auto-saved</strong> every 15-30 seconds. The exam will auto-submit when time runs out.</p>
+          </div>
+          <div class="flex items-start space-x-2">
+            <span class="text-indigo-600 font-bold mt-0.5">7.</span>
+            <p>Excessive violations may result in <strong>automatic disqualification</strong>.</p>
+          </div>
+          <div class="flex items-start space-x-2">
+            <span class="text-indigo-600 font-bold mt-0.5">8.</span>
+            <p>Your IP address and all activity will be logged with timestamps for review.</p>
+          </div>
+        <% } %>
       </div>
     </div>
+
+    <% if (session.question_instructions && session.question_instructions.trim()) { %>
+    <!-- Question Instructions -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+      <h3 class="font-bold text-blue-800 mb-2 text-sm">Question Instructions:</h3>
+      <div class="space-y-1 text-sm text-blue-700">
+        <% session.question_instructions.trim().split('\n').filter(i => i.trim()).forEach(instruction => { %>
+          <p>&bull; <%= instruction.trim() %></p>
+        <% }) %>
+      </div>
+    </div>
+    <% } %>
 
     <!-- Warning -->
     <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6 text-sm text-amber-700">
